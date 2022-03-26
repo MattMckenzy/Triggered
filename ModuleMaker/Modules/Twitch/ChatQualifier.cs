@@ -1,7 +1,7 @@
-﻿using System.Threading.Tasks;
-using System;
-using TwitchLib.Client.Events;
+﻿using System;
+using System.Threading.Tasks;
 using TownBulletin.Services;
+using TwitchLib.Client.Events;
 
 namespace ModuleMaker.Modules.Twitch
 {

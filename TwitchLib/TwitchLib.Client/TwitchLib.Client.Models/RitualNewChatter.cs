@@ -13,7 +13,7 @@ namespace TwitchLib.Client.Models
 
         public string Color { get; }
 
-        public string DisplayName { get; }
+        public string DisplayName { get; set; }
 
         public string Emotes { get; }
 
@@ -44,6 +44,11 @@ namespace TwitchLib.Client.Models
         public string UserId { get; }
 
         public UserType UserType { get; }
+
+        public RitualNewChatter()
+        {
+
+        }
 
         // badges=subscriber/0;color=#0000FF;display-name=KittyJinxu;emotes=30259:0-6;id=1154b7c0-8923-464e-a66b-3ef55b1d4e50;
         // login=kittyjinxu;mod=0;msg-id=ritual;msg-param-ritual-name=new_chatter;room-id=35740817;subscriber=1;

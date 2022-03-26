@@ -33,9 +33,18 @@
         </div>
         <div class="mb-3">
             <label for="jsonData" class="form-label text-white">JSON Event Data</label>
-            <textarea rows="10" class="form-control json-text-area" id="jsonData" value=@CurrentEventTest.JsonData
+            <textarea rows="10" class="form-control json-text-area @(InvalidJsonMessages.Any() ? "is-invalid" : "is-valid")" id="jsonData" value=@CurrentEventTest.JsonData
                 @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentEventTest.JsonData), changeEventArgs.Value!))>
             </textarea>
+            @if(InvalidJsonMessages.Any())
+            {                
+                <div class="invalid-feedback" style="display:block;">
+                    @foreach(string invalidJsonMessage in InvalidJsonMessages)
+                    {
+                        @invalidJsonMessage
+                    }
+                </div>
+            }
         </div>
         <div>
             <button class="btn btn-success me-3 @(!CurrentEventTestIsValid || !CurrentEventTestIsDirty ? "disabled" : string.Empty)" @onclick="SaveEventTest" disabled="@(!CurrentEventTestIsValid || !CurrentEventTestIsDirty)">

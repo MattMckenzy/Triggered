@@ -9,8 +9,6 @@ using TownBulletin.Models;
 using TownBulletin.Services;
 using TwitchLib.EventSub.Webhooks.Extensions;
 
-//TODO: Update TownBulletin-Launcher with the one available here.
-
 // **********************
 //   Register services.
 // **********************

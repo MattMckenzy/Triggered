@@ -13,7 +13,7 @@ namespace TownBulletin.Extensions
             { "MessageLevels", "Information, Warning, Error" },
             { "MessageNotificationsEnabled", "False" },
             { "MessageNotificationVolume", "0.25" },
-            { "ObsAddress", "wss://localhost:444" },
+            { "ObsAddress", "ws://localhost:4444" },
             { "ObsPassword", "" },
             { "TwitchClientId", "" },
             { "TwitchClientSecret", "" },

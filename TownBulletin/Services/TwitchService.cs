@@ -12,7 +12,6 @@ namespace TownBulletin.Services
     {
         private readonly MessagingService _messagingService;
         private readonly ModuleService _moduleService;
-        private readonly ITwitchEventSubWebhooks _eventSubWebhooks;
         private readonly IConfiguration _configuration;
         private readonly IDbContextFactory<TownBulletinDbContext> _dbContextFactory;
 
@@ -60,6 +59,7 @@ namespace TownBulletin.Services
         };
 
         public TwitchPubSub TwitchPubSub { get; set; } = new();
+        public ITwitchEventSubWebhooks TwitchEventSubWebhooks { get; set; } = null!;
 
         public TwitchService(IDbContextFactory<TownBulletinDbContext> dbContextFactory,
                                 ModuleService moduleService,
@@ -71,9 +71,9 @@ namespace TownBulletin.Services
         {
             _messagingService = messagingService;
             _moduleService = moduleService;
-            _eventSubWebhooks = eventSubWebhooks;
             _configuration = configuration;
             _dbContextFactory = dbContextFactory;
+            TwitchEventSubWebhooks = eventSubWebhooks;
 
             ConnectFunction = Connect;
             DisconnectFunction = Disconnect;
@@ -124,10 +124,10 @@ namespace TownBulletin.Services
 
             _moduleService.RegisterParameterObjects(new (string, Type, object)[]
             {
-                (nameof(TwitchService), typeof(TwitchService), this),
-                (nameof(ITwitchEventSubWebhooks), typeof(ITwitchEventSubWebhooks), this),
+                (nameof(TwitchService), typeof(TwitchService), this)
             });
             _moduleService.InitializeSupportedEventsAndParameters(TwitchPubSub);
+            _moduleService.InitializeSupportedEventsAndParameters(TwitchEventSubWebhooks);
         }
 
         protected async Task Connect()
@@ -146,7 +146,7 @@ namespace TownBulletin.Services
             }
 
             _moduleService.RegisterEvents(TwitchPubSub);
-            _moduleService.RegisterEvents(_eventSubWebhooks);
+            _moduleService.RegisterEvents(TwitchEventSubWebhooks);
 
             TwitchPubSub.ListenToAutomodQueue(User.Id, User.Id);
             TwitchPubSub.ListenToChatModeratorActions(User.Id, User.Id);
@@ -178,7 +178,7 @@ namespace TownBulletin.Services
         protected Task Disconnect()
         {
             _moduleService.DeregisterEvents(TwitchPubSub);
-            _moduleService.DeregisterEvents(_eventSubWebhooks);
+            _moduleService.DeregisterEvents(TwitchEventSubWebhooks);
             TwitchPubSub.Disconnect();
             return Task.CompletedTask;
         }

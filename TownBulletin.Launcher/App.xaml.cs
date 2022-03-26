@@ -90,7 +90,7 @@ namespace TownBulletin.Launcher
                         HttpClient client = new();
                         client.Timeout = TimeSpan.FromMinutes(5);
                         using FileStream file = new(zipPath, FileMode.Create, FileAccess.Write, FileShare.None);
-                        await client.DownloadAsync($"https://raw.githubusercontent.com/MattMckenzy/TownBulletin/main/Releases/win-x64/{onlineVersion}.zip", file, progress, CancellationTokenSource.Token);
+                        await client.DownloadAsync($"https://github.com/MattMckenzy/TownBulletin/raw/main/Releases/win-x64/{onlineVersion}.zip", file, progress, CancellationTokenSource.Token);
                     });
 
                     void Progress_ProgressChanged(object? sender, (long, long) e)
@@ -126,8 +126,10 @@ namespace TownBulletin.Launcher
 
                     FileInfo currentLauncher = new(Path.Combine(localPath, "TownBulletin.Launcher.exe"));
                     FileInfo newLauncher = new(Path.Combine(localPath, "TownBulletin", "TownBulletin.Launcher.exe"));
-                    currentLauncher.MoveTo(currentLauncher.FullName.Replace("exe", "bak"));
-                    newLauncher.MoveTo(currentLauncher.FullName);
+                    string currentLauncherPath = currentLauncher.FullName;
+                    File.Delete(currentLauncherPath.Replace("exe", "bak"));
+                    currentLauncher.MoveTo(currentLauncherPath.Replace("exe", "bak"));
+                    newLauncher.MoveTo(currentLauncherPath);
 
                     ConsoleContent.WriteLine($"Update Complete.");
                 }

@@ -21,6 +21,11 @@ namespace TwitchLib.Client.Models
         /// <summary>Property representing the actual command (without the command prefix).</summary>
         public string CommandText { get; }
 
+        public ChatCommand()
+        {
+
+        }
+
         /// <summary>ChatCommand constructor.</summary>
         /// <param name="chatMessage"></param>
         public ChatCommand(ChatMessage chatMessage)

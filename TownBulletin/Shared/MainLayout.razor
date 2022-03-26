@@ -2,6 +2,8 @@
 @using TownBulletin.Models
 @inherits LayoutComponentBase
 
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
 <PageTitle>Town Bulletin</PageTitle>
 
 <div class="page">
@@ -63,7 +65,7 @@
 
     [Inject]
     private TwitchService TwitchService { get; set; } = null!;
-    
+
     [Inject]
     private TwitchBotService TwitchBotService { get; set; } = null!;
 
@@ -72,9 +74,11 @@
 
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
-        
+
     [Inject]
     private IJSRuntime JSRuntime { get; set; } = null!;
+
+    private ModalPrompt ModalPromptReference = null!;
 
     public async Task RefreshState()
     {
@@ -89,15 +93,24 @@
             if (authCodeUri != null)
                 await JSRuntime.InvokeVoidAsync("open", authCodeUri);
         }
-        
+
         NavigationManager.NavigateTo("/", true);
     }
-    
+
     private async void OnLogoutClick()
     {
-        //TODO: Modal prompt for logout.
-        await TwitchService.Logout();
-        NavigationManager.NavigateTo("/", true);
+        await ModalPromptReference.ShowModalPrompt(new()
+        {
+            Title = "WARNING: Logging out of Twitch!",
+            Message = $"Are you sure you want to logout and stop the Twitch service?",
+            CancelChoice = "Cancel",
+            Choice = "Yes",
+            ChoiceColour = "danger",
+            ChoiceAction = async () => {
+                await TwitchService.Logout();
+                NavigationManager.NavigateTo("/", true); 
+            }
+        });
     }
 
     private async void OnBotLoginClick()
@@ -114,7 +127,17 @@
 
     private async void OnBotLogoutClick()
     {
-        await TwitchBotService.Logout();
-        NavigationManager.NavigateTo("/", true);
+        await ModalPromptReference.ShowModalPrompt(new()
+        {
+            Title = "WARNING: Bot logging out of Twitch!",
+            Message = $"Are you sure you want to have the bot logout and stop the TwitchBot service?",
+            CancelChoice = "Cancel",
+            Choice = "Yes",
+            ChoiceColour = "danger",
+            ChoiceAction = async () => {
+                await TwitchBotService.Logout();
+                NavigationManager.NavigateTo("/", true); 
+            }
+        });
     }
 }

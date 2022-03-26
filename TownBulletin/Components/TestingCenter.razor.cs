@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using Newtonsoft.Json;
-using System.Web;
 using TownBulletin.Extensions;
 using TownBulletin.Models;
 using TownBulletin.Services;
@@ -36,6 +35,8 @@ namespace TownBulletin.Components
         private EventTest CurrentEventTest { get; set; } = new();
         private bool CurrentEventTestIsValid = false;
         private bool CurrentEventTestIsDirty = false;
+
+        private readonly IList<string> InvalidJsonMessages = new List<string>();
 
         private ModalPrompt ModalPromptReference = null!;
 
@@ -134,7 +135,7 @@ namespace TownBulletin.Components
 
         private async Task SaveEventTest()
         {
-            //TODO: malformed json error.
+            //TODO: fix TwitchLib.CLient EventArgs public constructors and setters
             using TownBulletinDbContext townBulletinDbContext = await DbContextFactory.CreateDbContextAsync();
 
             if (townBulletinDbContext.EventTests.Any(module => module.Id == CurrentEventTest.Id))
@@ -235,7 +236,7 @@ namespace TownBulletin.Components
 
         private async Task UpdatePageState()
         {
-            CurrentEventTestIsValid =
+            CurrentEventTestIsValid = TestJson() &&
                 !string.IsNullOrWhiteSpace(CurrentEventTest.Name) &&
                 !string.IsNullOrWhiteSpace(CurrentEventTest.Event);
 
@@ -250,6 +251,33 @@ namespace TownBulletin.Components
                 .ToDictionary(category => category.Key.Split(".").First() + " / " + category.Key.Split(".").Last(), category => category.Select(module => module.Id.ToString()!));
 
             await InvokeAsync(StateHasChanged);
+        }
+
+        private bool TestJson()
+        {
+            InvalidJsonMessages.Clear();
+
+            if (CurrentEventTest?.JsonData == null)
+                return true;
+
+            try
+            {
+                if (ModuleService.EventArgumentTypes.TryGetValue(CurrentEventTest.Event, out Type? argumentType) && argumentType != null)
+                {
+                    JsonConvert.DeserializeObject(CurrentEventTest.JsonData, argumentType);
+                    return true;
+                }
+                else
+                {
+                    InvalidJsonMessages.Add("Please select event to validate JSON.");
+                }                
+            }
+            catch (JsonReaderException jsonReaderException)
+            {
+                InvalidJsonMessages.Add(jsonReaderException.Message);
+            }
+
+            return false;
         }
 
         private async Task SetCurrentEventTest(EventTest eventTest)

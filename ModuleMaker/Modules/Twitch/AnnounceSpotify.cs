@@ -1,4 +1,6 @@
 ﻿using OBSWebsocketDotNet;
+using System;
+using System.Threading.Tasks;
 using TownBulletin.Services;
 
 namespace ModuleMaker.Modules.Twitch
