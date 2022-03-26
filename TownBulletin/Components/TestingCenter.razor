@@ -1,0 +1,49 @@
+﻿@using TownBulletin.Models
+
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+<div class="eventtests">
+    
+    @if (EventTestNames != null && CategoryEventTests != null)
+    {        
+        <EntitySidebar Title="Event Tests"
+            Items=@EventTestNames
+            Categories=@CategoryEventTests
+            CreateCallback=CreateEventTest
+            DeleteCallback=DeleteEventTest
+            LoadCallback=LoadEventTest
+            CurrentItem=@CurrentEventTest.Id.ToString()></EntitySidebar>
+    }
+
+    <div class="main mb-3">
+        <div class="mb-3">
+            <label for="moduleName" class="form-label text-white">Name</label>
+            <input type="text" class="form-control @(string.IsNullOrWhiteSpace(CurrentEventTest.Name) ? "is-invalid" : "is-valid")" id="moduleName" value="@CurrentEventTest.Name" 
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentEventTest.Name), changeEventArgs.Value!)) required>
+        </div>    
+        <div class="mb-3">
+            <label for="subscriptionEventString" class="form-label text-white">Event</label>
+            <FilterSelect Selected=@CurrentEventTest.Event 
+                Options=@ModuleService.SupportedEvents 
+                Categories=@(new Dictionary<string, string>(
+                    ModuleService.SupportedEvents.Select(keyValuePair => 
+                        new KeyValuePair<string, string>(keyValuePair.Key, 
+                            keyValuePair.Key.Split(".", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? string.Empty))))
+                OnChange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentEventTest.Event), changeEventArgs.Value!))></FilterSelect>
+        </div>
+        <div class="mb-3">
+            <label for="jsonData" class="form-label text-white">JSON Event Data</label>
+            <textarea rows="10" class="form-control json-text-area" id="jsonData" value=@CurrentEventTest.JsonData
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentEventTest.JsonData), changeEventArgs.Value!))>
+            </textarea>
+        </div>
+        <div>
+            <button class="btn btn-success me-3 @(!CurrentEventTestIsValid || !CurrentEventTestIsDirty ? "disabled" : string.Empty)" @onclick="SaveEventTest" disabled="@(!CurrentEventTestIsValid || !CurrentEventTestIsDirty)">
+                Save Event Test
+            </button>
+            <button class="btn btn-warning @(!CurrentEventTestIsValid || CurrentEventTestIsDirty ? "disabled" : string.Empty)" @onclick="TestEvent" disabled="@(!CurrentEventTestIsValid || CurrentEventTestIsDirty)">
+                Test Event
+            </button>
+        </div>
+    </div>
+</div>

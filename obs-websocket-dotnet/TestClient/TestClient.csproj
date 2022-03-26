@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>netcoreapp3.1</TargetFramework>
+		<AssemblyName>TestClient</AssemblyName>
+		<RootNamespace>TestClient</RootNamespace>
+		<LangVersion>8</LangVersion>
+		<UseWindowsForms>true</UseWindowsForms>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\obs-websocket-dotnet\obs-websocket-dotnet.csproj" />
+	</ItemGroup>
+
+</Project>

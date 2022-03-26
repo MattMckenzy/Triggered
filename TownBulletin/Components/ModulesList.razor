@@ -1,0 +1,83 @@
+﻿@using TownBulletin.Models
+
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+<div class="modal fade" id="codeModal" tabindex="-1" aria-hidden="true" data-backdrop="false">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <img src="assets/csharp.png" height="20" class="rounded me-2" alt="C#">
+                <strong class="modal-title">Code Editor</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" @onclick=CompileCode></button>
+            </div>
+            <div class="modal-body m-0 p-0">
+                <div @ref=CodeEditorRef id="codeEditor"></div>
+            </div>
+            <div class="modal-footer bg-dark text-white h6 justify-content-start align-content-start" id="codeAnalyser">
+                <p>@CodeAnalysisResults</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modules">
+    
+    @if (ModuleNames != null && CategoryModules != null)
+    {        
+        <EntitySidebar Title="Modules"
+            Items=@ModuleNames
+            Categories=@CategoryModules
+            CreateCallback=CreateModule
+            DeleteCallback=DeleteModule
+            LoadCallback=LoadModule
+            CurrentItem=@CurrentModule.Id.ToString()></EntitySidebar>
+    }
+
+    <div class="main mb-3">
+        <div class="mb-3">
+            <label for="moduleName" class="form-label text-white">Name</label>
+            <input type="text" class="form-control @(string.IsNullOrWhiteSpace(CurrentModule.Name) ? "is-invalid" : "is-valid")" id="moduleName" value="@CurrentModule.Name" 
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentModule.Name), changeEventArgs.Value!)) required>
+        </div>    
+        <div class="mb-3">
+            <label for="subscriptionEventString" class="form-label text-white">Event</label>
+            <FilterSelect Selected=@CurrentModule.Event 
+                Options=@ModuleService.SupportedEvents 
+                Categories=@(new Dictionary<string, string>(
+                    ModuleService.SupportedEvents.Select(keyValuePair => 
+                        new KeyValuePair<string, string>(keyValuePair.Key, 
+                            keyValuePair.Key.Split(".", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? string.Empty))))
+                OnChange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentModule.Event), changeEventArgs.Value!))></FilterSelect>
+        </div>
+        <div class="mb-3">
+            <label for="entryMethod" class="form-label text-white">Entry Method</label>
+            <input type="text" class="form-control @(string.IsNullOrWhiteSpace(CurrentModule.EntryMethod) ? "is-invalid" : "is-valid")" id="entryMethod" value="@CurrentModule.EntryMethod" 
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentModule.EntryMethod), changeEventArgs.Value!)) required>
+        </div>
+        <div class="mb-3">
+            <label for="executionOrder" class="form-label text-white">Execution Order</label>
+            <input type="number" class="form-control" id="executionOrder" value="@CurrentModule.ExecutionOrder" 
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentModule.ExecutionOrder), changeEventArgs.Value!))>
+        </div>  
+        <div class="mb-3">
+            <label for="stopEventExecution" class="form-check-label text-white">Stop Event Execution</label>
+            <input type="checkbox" class="form-check-input" id="stopEventExecution" checked=@CurrentModule.StopEventExecution
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentModule.StopEventExecution), changeEventArgs.Value!))>
+        </div>  
+        <div class="mb-3">
+            <label for="isEnabled" class="form-check-label text-white">Is Enabled</label>
+            <input type="checkbox" class="form-check-input" id="isEnabled" checked=@CurrentModule.IsEnabled 
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentModule.IsEnabled), changeEventArgs.Value!))>
+        </div> 
+        <div class="mb-3">
+            <button type="button" class="btn btn-@(CompiledModule == null ? "danger" : "primary") me-2" data-bs-toggle="modal" data-bs-target="#codeModal" id="codeButton" @onclick=ReplaceCodeTemplates>
+                Edit Code
+            </button>
+        </div>
+        <div>
+            <button class="btn btn-success @(!CurrentModuleIsValid || !CurrentModuleIsDirty ? "disabled" : string.Empty)" @onclick="SaveModule" disabled="@(!CurrentModuleIsValid || !CurrentModuleIsDirty)">
+                Save Module
+            </button>
+        </div>
+    </div>
+</div>

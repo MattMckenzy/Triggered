@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v5.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v5.0": {
+      "TwitchLib.EventSub.Webhooks/1.1.1": {
+        "runtime": {
+          "TwitchLib.EventSub.Webhooks.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "TwitchLib.EventSub.Webhooks/1.1.1": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

@@ -1,0 +1,139 @@
+﻿@page "/"
+@using TownBulletin.Extensions
+@using TownBulletin.Models
+
+<PageTitle>Town Bulletin Control Panel</PageTitle>
+
+
+<h3 class="text-white mb-3">Town Bulletin Control Panel</h3>
+
+<div class="row">
+    <div class="col-auto mb-3">
+        @if (IsTwitchServiceActivated)
+        {    
+            <button type="button" class="btn btn-danger" @onclick=StopTwitchService>
+                <span class="">Stop Twitch Service</span>
+            </button>
+        }
+        else
+        {    
+            <button type="button" class="btn btn-primary" @onclick=StartTwitchService>
+                <span class="">Start Twitch Service</span>
+            </button>
+        }
+    </div>
+    <div class="col-auto mb-3">
+        @if (IsTwitchBotServiceActivated)
+        {    
+            <button type="button" class="btn btn-danger" @onclick=StopTwitchBotService>
+                <span class="">Stop Twitch Bot Service</span>
+            </button>
+        }
+        else
+        {    
+            <button type="button" class="btn btn-primary" @onclick=StartTwitchBotService>
+                <span class="">Start Twitch Bot Service</span>
+            </button>
+        }
+    </div>
+    <div class="col-auto mb-3">
+        @if (IsObsServiceActivated)
+        {    
+            <button type="button" class="btn btn-danger" @onclick=StopObsService>
+                <span class="">Stop OBS Service</span>
+            </button>
+        }
+        else
+        {    
+            <button type="button" class="btn btn-primary" @onclick=StartObsService>
+                <span class="">Start OBS Service</span>
+            </button>
+        }
+    </div>
+</div>
+
+<br />
+<hr class="text-white" />
+<br />
+
+<h3 class="text-white mb-3">Town Bulletin Messages</h3>
+
+<MessagesList></MessagesList>
+
+@code {
+    [Inject]
+    private TwitchService TwitchService { get; set; } = null!;
+    [Inject]
+    private TwitchBotService TwitchBotService { get; set; } = null!;
+    [Inject]
+    private ObsService ObsService { get; set; } = null!;
+
+    [Inject]
+    private TownBulletinDbContext TownBulletinDbContext { get; set; } = null!;
+
+    private bool IsTwitchServiceActivated { get; set; } = false;
+    private bool IsTwitchBotServiceActivated { get; set; } = false;
+    private bool IsObsServiceActivated { get; set; } = false;
+
+    protected override Task OnInitializedAsync()
+    {
+        IsTwitchServiceActivated = TwitchService.IsActive;
+        TwitchService.ServiceStatusChanged += TwitchServcice_ServiceStatusChanged;
+                
+        IsTwitchBotServiceActivated = TwitchBotService.IsActive;
+        TwitchBotService.ServiceStatusChanged += TwitchBotService_ServiceStatusChanged;
+
+        IsObsServiceActivated = ObsService.IsActive;
+        ObsService.ServiceStatusChanged += ObsService_ServiceStatusChanged;
+
+        return base.OnInitializedAsync();
+    }
+
+    private async void TwitchServcice_ServiceStatusChanged(object? obj, EventArgs e)
+    {               
+        IsTwitchServiceActivated = TwitchService.IsActive;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void StartTwitchService()
+    {
+        await TwitchService.StartAsync();
+    }
+
+    private async void StopTwitchService()
+    {
+        await TwitchService.StopAsync();
+    }
+    
+    private async void TwitchBotService_ServiceStatusChanged(object? obj, EventArgs e)
+    {               
+        IsTwitchBotServiceActivated = TwitchBotService.IsActive;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void StartTwitchBotService()
+    {
+        await TwitchBotService.StartAsync();
+    }
+
+    private async void StopTwitchBotService()
+    {
+        await TwitchBotService.StopAsync();
+    }
+
+    private async void ObsService_ServiceStatusChanged(object? obj, EventArgs e)
+    {               
+        IsObsServiceActivated = ObsService.IsActive;
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    private async void StartObsService()
+    {
+        await ObsService.StartAsync();
+    }
+
+    private async void StopObsService()
+    {
+        await ObsService.StopAsync();
+    }
+}

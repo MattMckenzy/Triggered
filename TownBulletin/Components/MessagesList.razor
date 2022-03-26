@@ -1,0 +1,46 @@
+﻿@using TownBulletin.Models
+
+<div class="d-flex justify-content-between">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-auto p-0"> 
+                @if (IsMuted)
+                {
+                    <button class="btn btn-primary" @onclick=OnAudioClick><i class="bi bi-volume-mute-fill" ></i></button>
+                }
+                else
+                {
+                    <button class="btn btn-primary" @onclick=OnAudioClick><i class="bi bi-volume-up-fill"></i></button>
+                }
+            </div>
+            <div class="col">
+                <MultiSelect TEnum=LogLevel
+                    Selected=@FilteredLogLevels 
+                    Options=@(Enum.GetValues<LogLevel>().ToDictionary(logLevel => logLevel, logLevel => logLevel.ToString())) 
+                    OnChange=FilterMessages />
+            </div>
+            <div class="col-auto ms-5 p-0">
+                <button class="btn btn-danger" @onclick=DeleteAllMessages disabled=@(Messages.Count == 0)>Delete All</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<audio id="player" preload="auto">
+    <source id="playerSource" src="/assets/notification.mp3" />
+</audio>
+
+<div class="list-group my-3 w-100">
+    @foreach(Message message in Messages)
+    {
+        <div class="list-group-item list-group-item-action @GetMessageStyle(message) flex-column align-items-start">
+            <div class="d-flex w-100">
+                <h5 class="mb-1 me-auto">@message.Category</h5>
+                <small>@message.TimeStamp</small>
+                <button class="btn btn-sm btn-close btn-danger ms-2" @onclick="@(async () => await DeleteMessage(message))"></button>
+            </div>
+            <p class="mb-1">@message.Text</p>            
+            <small>@message.Severity</small>
+        </div>
+    }
+</div>

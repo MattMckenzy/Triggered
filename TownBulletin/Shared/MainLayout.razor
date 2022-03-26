@@ -1,0 +1,120 @@
+﻿@using TownBulletin.Extensions
+@using TownBulletin.Models
+@inherits LayoutComponentBase
+
+<PageTitle>Town Bulletin</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 auth">
+            @if(TwitchService.IsLoggedIn && TwitchService.User != null)
+            {
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 me-3 auth-button" @onclick=OnLogoutClick>
+                    <img class="auth-circle" src="@TwitchService.User.ProfileImageUrl" />   
+                </button>             
+            }            
+            else if(TwitchService.IsLoggedIn)
+            {
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 me-3 auth-button" @onclick=OnLogoutClick>
+                    <i class="auth-circle bi-x-lg" />   
+                </button>             
+            }
+            else
+            {                
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 me-3 auth-button" @onclick=OnLoginClick>
+                    <img class="auth-circle" src="assets/TwitchGlitchPurple.svg"  />     
+                </button>                         
+            }
+
+            @if(TwitchBotService.IsLoggedIn && TwitchBotService.User != null)
+            {
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnBotLogoutClick>
+                    <img class="auth-circle" src="@TwitchBotService.User.ProfileImageUrl" />   
+                </button>             
+            }
+            else if(TwitchBotService.IsLoggedIn)
+            {                
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnBotLoginClick>
+                    <i class="auth-circle bi-x-lg" />   
+                </button>                         
+            }
+            else
+            {                
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnBotLoginClick>
+                    <img class="auth-circle" src="assets/TwitchGlitchBlackOps.svg"  />     
+                </button>                         
+            }
+        </div>
+
+        <article class="content px-4">
+            <CascadingValue Value="this">
+                @Body
+            </CascadingValue>
+        </article>
+    </main>
+</div>
+
+
+@code {
+
+    [Inject]
+    private TwitchService TwitchService { get; set; } = null!;
+    
+    [Inject]
+    private TwitchBotService TwitchBotService { get; set; } = null!;
+
+    [Inject]
+    private TownBulletinDbContext TownBulletinDbContext { get; set; } = null!;
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = null!;
+        
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = null!;
+
+    public async Task RefreshState()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnLoginClick()
+    {
+        if (await TwitchService.Initialize())
+        {            
+            string? authCodeUri = await TwitchService.GetAuthorizationCodeUrl($"{TownBulletinDbContext.Settings.GetSetting("Host")}/auth/redirect");
+            if (authCodeUri != null)
+                await JSRuntime.InvokeVoidAsync("open", authCodeUri);
+        }
+        
+        NavigationManager.NavigateTo("/", true);
+    }
+    
+    private async void OnLogoutClick()
+    {
+        //TODO: Modal prompt for logout.
+        await TwitchService.Logout();
+        NavigationManager.NavigateTo("/", true);
+    }
+
+    private async void OnBotLoginClick()
+    {
+        if (await TwitchBotService.Initialize())
+        {            
+            string? authCodeUri = await TwitchBotService.GetAuthorizationCodeUrl($"{TownBulletinDbContext.Settings.GetSetting("Host")}/auth/botredirect");
+            if (authCodeUri != null)
+                await JSRuntime.InvokeVoidAsync("open", authCodeUri);
+        }
+        
+        NavigationManager.NavigateTo("/", true);
+    }
+
+    private async void OnBotLogoutClick()
+    {
+        await TwitchBotService.Logout();
+        NavigationManager.NavigateTo("/", true);
+    }
+}
