@@ -45,9 +45,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencie
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwitchLib.PubSub", "TwitchLib\TwitchLib.PubSub\TwitchLib.PubSub\TwitchLib.PubSub.csproj", "{CA42042C-CE88-486A-8975-225E3274A705}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TownBulletin.Common", "TownBulletin.Common\TownBulletin.Common.csproj", "{B2573835-6E95-4F07-9B51-537768043B89}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TownBulletin.Launcher", "TownBulletin.Launcher\TownBulletin.Launcher.csproj", "{DA589DC4-CA9B-4032-97E5-E99A62D84307}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TownBulletin.Launcher", "TownBulletin.Launcher\TownBulletin.Launcher.csproj", "{DA589DC4-CA9B-4032-97E5-E99A62D84307}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -127,10 +125,6 @@ Global
 		{CA42042C-CE88-486A-8975-225E3274A705}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA42042C-CE88-486A-8975-225E3274A705}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CA42042C-CE88-486A-8975-225E3274A705}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B2573835-6E95-4F07-9B51-537768043B89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B2573835-6E95-4F07-9B51-537768043B89}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B2573835-6E95-4F07-9B51-537768043B89}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B2573835-6E95-4F07-9B51-537768043B89}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DA589DC4-CA9B-4032-97E5-E99A62D84307}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DA589DC4-CA9B-4032-97E5-E99A62D84307}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DA589DC4-CA9B-4032-97E5-E99A62D84307}.Release|Any CPU.ActiveCfg = Release|Any CPU
