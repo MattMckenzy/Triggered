@@ -7,45 +7,45 @@ namespace TwitchLib.Client.Models
 {
     public class RaidNotification
     {
-        public List<KeyValuePair<string, string>> Badges { get; }
+        public List<KeyValuePair<string, string>> Badges { get; set; }
 
-        public List<KeyValuePair<string, string>> BadgeInfo { get; }
+        public List<KeyValuePair<string, string>> BadgeInfo { get; set; }
 
-        public string Color { get; }
+        public string Color { get; set; }
 
-        public string DisplayName { get; }
+        public string DisplayName { get; set; }
 
-        public string Emotes { get; }
+        public string Emotes { get; set; }
 
-        public string Id { get; }
+        public string Id { get; set; }
 
-        public string Login { get; }
+        public string Login { get; set; }
 
-        public bool Moderator { get; }
+        public bool Moderator { get; set; }
 
-        public string MsgId { get; }
+        public string MsgId { get; set; }
 
-        public string MsgParamDisplayName { get; }
+        public string MsgParamDisplayName { get; set; }
 
-        public string MsgParamLogin { get; }
+        public string MsgParamLogin { get; set; }
 
-        public string MsgParamViewerCount { get; }
+        public string MsgParamViewerCount { get; set; }
 
-        public string RoomId { get; }
+        public string RoomId { get; set; }
 
-        public bool Subscriber { get; }
+        public bool Subscriber { get; set; }
 
-        public string SystemMsg { get; }
+        public string SystemMsg { get; set; }
 
-        public string SystemMsgParsed { get; }
+        public string SystemMsgParsed { get; set; }
 
-        public string TmiSentTs { get; }
+        public string TmiSentTs { get; set; }
 
-        public bool Turbo { get; }
+        public bool Turbo { get; set; }
 
-        public string UserId { get; }
+        public string UserId { get; set; }
 
-        public UserType UserType { get; }
+        public UserType UserType { get; set; }
 
         // @badges=;color=#FF0000;display-name=Heinki;emotes=;id=4fb7ab2d-aa2c-4886-a286-46e20443f3d6;login=heinki;mod=0;msg-id=raid;msg-param-displayName=Heinki;msg-param-login=heinki;msg-param-viewerCount=4;room-id=27229958;subscriber=0;system-msg=4\sraiders\sfrom\sHeinki\shave\sjoined\n!;tmi-sent-ts=1510249711023;turbo=0;user-id=44110799;user-type= :tmi.twitch.tv USERNOTICE #pandablack
         public RaidNotification(IrcMessage ircMessage)
@@ -174,6 +174,10 @@ namespace TwitchLib.Client.Models
             Turbo = turbo;
             UserType = userType;
             UserId = userId;
+        }
+
+        public RaidNotification()
+        {
         }
     }
 }

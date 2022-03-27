@@ -7,19 +7,19 @@ namespace TwitchLib.Client.Models
     public class WhisperCommand
     {
         /// <summary>Property representing all arguments received in a List form.</summary>
-        public List<string> ArgumentsAsList { get; }
+        public List<string> ArgumentsAsList { get; set; }
 
         /// <summary>Property representing all arguments received in a string form.</summary>
-        public string ArgumentsAsString { get; }
+        public string ArgumentsAsString { get; set; }
 
         /// <summary>Property representing the command identifier (ie command prefix).</summary>
-        public char CommandIdentifier { get; }
+        public char CommandIdentifier { get; set; }
 
         /// <summary>Property representing the actual command (without the command prefix).</summary>
-        public string CommandText { get; }
+        public string CommandText { get; set; }
 
         /// <summary>Property representing the chat message that the command came in.</summary>
-        public WhisperMessage WhisperMessage { get; }
+        public WhisperMessage WhisperMessage { get; set; } = new WhisperMessage ();
 
         /// <summary>ChatCommand constructor.</summary>
         /// <param name="whisperMessage"></param>
@@ -44,6 +44,10 @@ namespace TwitchLib.Client.Models
             ArgumentsAsString = argumentsAsString;
             ArgumentsAsList = argumentsAsList;
             CommandIdentifier = commandIdentifier;
+        }
+
+        public WhisperCommand()
+        {
         }
     }
 }

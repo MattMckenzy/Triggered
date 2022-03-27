@@ -9,16 +9,16 @@ namespace TwitchLib.Client.Models
         public const string DefaultWebSocketUri = "wss://irc-ws.chat.twitch.tv:443";
 
         /// <summary>Property representing URI used to connect to Twitch websocket service.</summary>
-        public string TwitchWebsocketURI { get; }
+        public string TwitchWebsocketURI { get; set; }
 
         /// <summary>Property representing bot's oauth.</summary>
-        public string TwitchOAuth { get; }
+        public string TwitchOAuth { get; set; }
 
         /// <summary>Property representing bot's username.</summary>
-        public string TwitchUsername { get; }
+        public string TwitchUsername { get; set; }
 
         /// <summary>Property representing capability requests sent to twitch.</summary>
-        public Capabilities Capabilities { get; }
+        public Capabilities Capabilities { get; set; }
 
         /// <summary>Constructor for ConnectionCredentials object.</summary>
         public ConnectionCredentials(
@@ -46,25 +46,33 @@ namespace TwitchLib.Client.Models
                 capabilities = new Capabilities();
             Capabilities = capabilities;
         }
+
+        public ConnectionCredentials()
+        {
+        }
     }
 
     /// <summary>Class used to store capacity request settings used when connecting to Twitch</summary>
     public class Capabilities
     {
         /// <summary>Adds membership state event data. By default, we do not send this data to clients without this capability.</summary>
-        public bool Membership { get; }
+        public bool Membership { get; set; }
 
         /// <summary>Adds IRC V3 message tags to several commands, if enabled with the commands capability.</summary>
-        public bool Tags { get; }
+        public bool Tags { get; set; }
 
         /// <summary>Enables several Twitch-specific commands.</summary>
-        public bool Commands { get; }
+        public bool Commands { get; set; }
 
         public Capabilities(bool membership = true, bool tags = true, bool commands = true)
         {
             Membership = membership;
             Tags = tags;
             Commands = commands;
+        }
+
+        public Capabilities()
+        {
         }
     }
 }

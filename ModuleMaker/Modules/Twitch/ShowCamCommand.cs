@@ -7,7 +7,7 @@ namespace ModuleMaker.Modules.Twitch
 {
     public class ShowCamCommand
     {
-        public static async Task<bool> Command(OnChatCommandReceivedArgs onChatCommandReceivedArgs, ObsService obsService)
+        public static async Task<bool> ShowCam(OnChatCommandReceivedArgs onChatCommandReceivedArgs, ObsService obsService)
         {
             if (onChatCommandReceivedArgs.Command.CommandText.Equals("camonly", StringComparison.InvariantCultureIgnoreCase))
             {

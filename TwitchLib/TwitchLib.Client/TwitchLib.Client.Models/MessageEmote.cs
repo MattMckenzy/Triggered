@@ -131,30 +131,46 @@ namespace TwitchLib.Client.Models
             Large = 2
         }
 
-        private readonly string _id, _text, _escapedText;
-        private readonly EmoteSource _source;
-        private readonly EmoteSize _size;
+        private string _id, _text, _escapedText;
+        private EmoteSource _source;
+        private EmoteSize _size;
 
         /// <summary>
         ///     Emote ID as used by the emote source. Will be provided as {0}
         ///     to be substituted into the indicated URL if needed.
         /// </summary>
-        public string Id => _id;
+        public string Id
+        {
+            get { return _id; }
+            set { _id = value;  }
+        }
 
         /// <summary>
         ///     Emote text which appears in a message and is meant to be replaced by the emote image.
         /// </summary>
-        public string Text => _text;
+        public string Text
+        {
+            get { return _text; }
+            set { _text = value; }
+        }
 
         /// <summary>
         ///     The specified <see cref="EmoteSource"/> for this emote.
         /// </summary>
-        public EmoteSource Source => _source;
+        public EmoteSource Source
+        {
+            get { return _source; }
+            set { _source = value; }
+        }
 
         /// <summary>
         ///     The specified <see cref="EmoteSize"/> for this emote.
         /// </summary>
-        public EmoteSize Size => _size;
+        public EmoteSize Size
+        {
+            get { return _size; }
+            set { _size = value; }
+        }
 
         /// <summary>
         ///    The string to substitute emote text for.
@@ -171,7 +187,11 @@ namespace TwitchLib.Client.Models
         ///     The emote text <see cref="Regex.Escape(string)">regex-escaped</see>
         ///     so that it can be embedded into a regex pattern.
         /// </summary>
-        public string EscapedText => _escapedText;
+        public string EscapedText
+        {
+            get { return _escapedText; }
+            set { _escapedText = value; }
+        }
 
         /// <summary>
         ///     Constructor for a new MessageEmote instance.
@@ -212,6 +232,10 @@ namespace TwitchLib.Client.Models
                 ReplacementDelegate = replacementDelegate;
             }
         }
+
+        public MessageEmote()
+        {
+        }
     }
 
     /// <summary>
@@ -219,7 +243,7 @@ namespace TwitchLib.Client.Models
     /// </summary>
     public class MessageEmoteCollection
     {
-        private readonly SortedList<string, MessageEmote> _emoteList;
+        public SortedList<string, MessageEmote> _emoteList;
         private const string BasePattern = @"(\b{0}\b)";
 
         /// <summary> Do not access directly! Backing field for <see cref="CurrentPattern"/> </summary>

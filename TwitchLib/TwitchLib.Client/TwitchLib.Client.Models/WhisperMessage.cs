@@ -12,13 +12,13 @@ namespace TwitchLib.Client.Models
     public class WhisperMessage : TwitchLibMessage
     {
         /// <summary>Property representing message identifier.</summary>
-        public string MessageId { get; }
+        public string MessageId { get; set; }
 
         /// <summary>Property representing identifier of the message thread.</summary>
-        public string ThreadId { get; }
+        public string ThreadId { get; set; }
 
         /// <summary>Property representing identifier of the message thread.</summary>
-        public string Message { get; }
+        public string Message { get; set; }
 
         public WhisperMessage(
             List<KeyValuePair<string, string>> badges,
@@ -123,6 +123,10 @@ namespace TwitchLib.Client.Models
 
             if (EmoteSet == null)
                 EmoteSet = new EmoteSet(default(string), Message);
+        }
+
+        public WhisperMessage()
+        {
         }
     }
 }

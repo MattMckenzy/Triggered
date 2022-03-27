@@ -14,6 +14,6 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// Property representing the Host notification
         /// </summary>
-        public BeingHostedNotification BeingHostedNotification;
+        public BeingHostedNotification BeingHostedNotification { get; set; } = new BeingHostedNotification();
     }
 }

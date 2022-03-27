@@ -26,5 +26,9 @@
             Channel = channel;
             Details = details;
         }
+
+        public FailureToReceiveJoinConfirmationException()
+        {
+        }
     }
 }

@@ -14,6 +14,6 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// Property representing received command.
         /// </summary>
-        public WhisperCommand Command;
+        public WhisperCommand Command { get; set; } = new WhisperCommand ();
     }
 }

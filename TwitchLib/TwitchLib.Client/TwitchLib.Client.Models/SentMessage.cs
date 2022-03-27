@@ -6,31 +6,31 @@ namespace TwitchLib.Client.Models
     public class SentMessage
     {
         /// <summary>Badges the sender has</summary>
-        public List<KeyValuePair<string, string>> Badges { get; }
+        public List<KeyValuePair<string, string>> Badges { get; set; }
 
         /// <summary>Channel the sent message was sent from.</summary>
-        public string Channel { get; }
+        public string Channel { get; set; }
 
         /// <summary>Sender's name color.</summary>
-        public string ColorHex { get; }
+        public string ColorHex { get; set; }
 
         /// <summary>Display name of the sender.</summary>
-        public string DisplayName { get; }
+        public string DisplayName { get; set; }
 
         /// <summary>Emotes that appear in the sent message.</summary>
-        public string EmoteSet { get; }
+        public string EmoteSet { get; set; }
 
         /// <summary>Whether or not the sender is a moderator.</summary>
-        public bool IsModerator { get; }
+        public bool IsModerator { get; set; }
 
         /// <summary>Whether or not the sender is a subscriber.</summary>
-        public bool IsSubscriber { get; }
+        public bool IsSubscriber { get; set; }
 
         /// <summary>The message contents.</summary>
-        public string Message { get; }
+        public string Message { get; set; }
 
         /// <summary>The type of user (admin, broadcaster, viewer, moderator)</summary>
-        public Enums.UserType UserType { get; }
+        public Enums.UserType UserType { get; set; }
 
         /// <summary>Model constructor.</summary>
         public SentMessage(
@@ -68,6 +68,10 @@ namespace TwitchLib.Client.Models
             IsSubscriber = isSubscriber;
             UserType = userType;
             Message = message;
+        }
+
+        public SentMessage()
+        {
         }
     }
 }

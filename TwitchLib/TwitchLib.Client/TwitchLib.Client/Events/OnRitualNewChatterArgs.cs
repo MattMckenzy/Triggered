@@ -13,6 +13,6 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// The ritual new chatter
         /// </summary>
-        public RitualNewChatter RitualNewChatter;
+        public RitualNewChatter RitualNewChatter { get; set; } = new RitualNewChatter ();
     }
 }

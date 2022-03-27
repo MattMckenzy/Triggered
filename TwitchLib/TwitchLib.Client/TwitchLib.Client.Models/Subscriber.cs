@@ -71,5 +71,9 @@ namespace TwitchLib.Client.Models
                   months: 0)
         {
         }
+
+        public Subscriber() : base()
+        {
+        }
     }
 }

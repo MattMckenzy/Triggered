@@ -10,41 +10,41 @@ namespace TwitchLib.Client.Models
     {
         //@badge-info=subscriber/11;badges=subscriber/9;color=#DAA520;display-name=Varanid;emotes=;flags=;id=a2d384c1-c30a-409e-8001-9e7d8f9c784d;login=varanid;mod=0;msg-id=giftpaidupgrade;msg-param-sender-login=cletusbueford;msg-param-sender-name=CletusBueford;room-id=44338537;subscriber=1;system-msg=Varanid\sis\scontinuing\sthe\sGift\sSub\sthey\sgot\sfrom\sCletusBueford!;tmi-sent-ts=1612497386372;user-id=67505836;user-type= :tmi.twitch.tv USERNOTICE #burkeblack 
 
-        public List<KeyValuePair<string, string>> Badges { get; }
+        public List<KeyValuePair<string, string>> Badges { get; set; }
 
-        public List<KeyValuePair<string, string>> BadgeInfo { get; }
+        public List<KeyValuePair<string, string>> BadgeInfo { get; set; }
 
-        public string Color { get; }
+        public string Color { get; set; }
 
-        public string DisplayName { get; }
+        public string DisplayName { get; set; }
 
-        public string Emotes { get; }
+        public string Emotes { get; set; }
 
-        public string Flags { get; }
+        public string Flags { get; set; }
 
-        public string Id { get; }
+        public string Id { get; set; }
 
-        public string Login { get; }
+        public string Login { get; set; }
 
-        public bool IsModerator { get; }
+        public bool IsModerator { get; set; }
 
-        public string MsgId { get; }
+        public string MsgId { get; set; }
 
-        public string MsgParamSenderLogin { get; }
+        public string MsgParamSenderLogin { get; set; }
 
-        public string MsgParamSenderName { get; }
+        public string MsgParamSenderName { get; set; }
 
-        public string RoomId { get; }
+        public string RoomId { get; set; }
 
-        public bool IsSubscriber { get; }
+        public bool IsSubscriber { get; set; }
 
-        public string SystemMsg { get; }
+        public string SystemMsg { get; set; }
 
-        public string TmiSentTs { get; }
+        public string TmiSentTs { get; set; }
 
-        public string UserId { get; }
+        public string UserId { get; set; }
 
-        public UserType UserType { get; }
+        public UserType UserType { get; set; }
 
         public ContinuedGiftedSubscription(IrcMessage ircMessage)
         {
@@ -127,6 +127,10 @@ namespace TwitchLib.Client.Models
                         break;
                 }
             }
+        }
+
+        public ContinuedGiftedSubscription()
+        {
         }
     }
 }

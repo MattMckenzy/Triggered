@@ -7,43 +7,43 @@ namespace TwitchLib.Client.Models
 {
     public class RitualNewChatter
     {
-        public List<KeyValuePair<string, string>> Badges { get; }
+        public List<KeyValuePair<string, string>> Badges { get; set; }
 
-        public List<KeyValuePair<string, string>> BadgeInfo { get; }
+        public List<KeyValuePair<string, string>> BadgeInfo { get; set; }
 
-        public string Color { get; }
+        public string Color { get; set; }
 
         public string DisplayName { get; set; }
 
-        public string Emotes { get; }
+        public string Emotes { get; set; }
 
-        public string Id { get; }
+        public string Id { get; set; }
 
-        public bool IsModerator { get; }
+        public bool IsModerator { get; set; }
 
-        public bool IsSubscriber { get; }
+        public bool IsSubscriber { get; set; }
 
-        public bool IsTurbo { get; }
+        public bool IsTurbo { get; set; }
 
-        public string Login { get; }
+        public string Login { get; set; }
 
-        public string Message { get; }
+        public string Message { get; set; }
 
-        public string MsgId { get; }
+        public string MsgId { get; set; }
 
-        public string MsgParamRitualName { get; }
+        public string MsgParamRitualName { get; set; }
 
-        public string RoomId { get; }
+        public string RoomId { get; set; }
 
-        public string SystemMsgParsed { get; }
+        public string SystemMsgParsed { get; set; }
 
-        public string SystemMsg { get; }
+        public string SystemMsg { get; set; }
 
-        public string TmiSentTs { get; }
+        public string TmiSentTs { get; set; }
 
-        public string UserId { get; }
+        public string UserId { get; set; }
 
-        public UserType UserType { get; }
+        public UserType UserType { get; set; }
 
         public RitualNewChatter()
         {

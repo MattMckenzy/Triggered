@@ -33,6 +33,10 @@ namespace TwitchLib.Client.Models
         public UserType UserType;
         public string MsgParamMultiMonthGiftDuration;
 
+        public CommunitySubscription()
+        {
+        }
+
         public CommunitySubscription(IrcMessage ircMessage)
         {
             foreach (var tag in ircMessage.Tags.Keys)

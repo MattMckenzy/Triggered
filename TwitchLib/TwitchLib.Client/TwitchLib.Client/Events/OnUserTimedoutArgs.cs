@@ -14,6 +14,6 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// The user timeout
         /// </summary>
-        public UserTimeout UserTimeout;
+        public UserTimeout UserTimeout { get; set; } = new UserTimeout ();
     }
 }

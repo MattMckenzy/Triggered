@@ -16,6 +16,10 @@ namespace TwitchLib.Client.Models
         /// <summary>Viewer that was timedout.</summary>
         public string Username;
 
+        public UserTimeout()
+        {
+        }
+
         public UserTimeout(IrcMessage ircMessage)
         {
             Channel = ircMessage.Channel;

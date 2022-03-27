@@ -15,6 +15,6 @@ namespace TwitchLib.Client.Events
         /// The command
         /// </summary>
         /// Property representing received command.
-        public ChatCommand Command;
+        public ChatCommand Command { get; set; } = new ChatCommand ();
     }
 }

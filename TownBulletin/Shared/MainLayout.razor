@@ -1,4 +1,5 @@
-﻿@using TownBulletin.Extensions
+﻿@using Microsoft.EntityFrameworkCore
+@using TownBulletin.Extensions
 @using TownBulletin.Models
 @inherits LayoutComponentBase
 
@@ -15,40 +16,43 @@
         <div class="top-row px-4 auth">
             @if(TwitchService.IsLoggedIn && TwitchService.User != null)
             {
-                <button type="button" class="btn btn-outline-light rounded-circle p-0 me-3 auth-button" @onclick=OnLogoutClick>
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnLogoutClick>
                     <img class="auth-circle" src="@TwitchService.User.ProfileImageUrl" />   
                 </button>             
             }            
             else if(TwitchService.IsLoggedIn)
             {
-                <button type="button" class="btn btn-outline-light rounded-circle p-0 me-3 auth-button" @onclick=OnLogoutClick>
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnLogoutClick>
                     <i class="auth-circle bi-x-lg" />   
                 </button>             
             }
             else
             {                
-                <button type="button" class="btn btn-outline-light rounded-circle p-0 me-3 auth-button" @onclick=OnLoginClick>
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnLoginClick>
                     <img class="auth-circle" src="assets/TwitchGlitchPurple.svg"  />     
                 </button>                         
             }
 
-            @if(TwitchBotService.IsLoggedIn && TwitchBotService.User != null)
+            @if (UseSecondAccount)
             {
-                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnBotLogoutClick>
-                    <img class="auth-circle" src="@TwitchBotService.User.ProfileImageUrl" />   
-                </button>             
-            }
-            else if(TwitchBotService.IsLoggedIn)
-            {                
-                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnBotLoginClick>
-                    <i class="auth-circle bi-x-lg" />   
-                </button>                         
-            }
-            else
-            {                
-                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnBotLoginClick>
-                    <img class="auth-circle" src="assets/TwitchGlitchBlackOps.svg"  />     
-                </button>                         
+                if(TwitchBotService.IsLoggedIn && TwitchBotService.User != null)
+                {
+                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnBotLogoutClick>
+                        <img class="auth-circle" src="@TwitchBotService.User.ProfileImageUrl" />   
+                    </button>             
+                }
+                else if(TwitchBotService.IsLoggedIn)
+                {                
+                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnBotLoginClick>
+                        <i class="auth-circle bi-x-lg" />   
+                    </button>                         
+                }
+                else
+                {                
+                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnBotLoginClick>
+                        <img class="auth-circle" src="assets/TwitchGlitchBlackOps.svg"  />     
+                    </button>                         
+                }
             }
         </div>
 
@@ -70,7 +74,7 @@
     private TwitchBotService TwitchBotService { get; set; } = null!;
 
     [Inject]
-    private TownBulletinDbContext TownBulletinDbContext { get; set; } = null!;
+    private IDbContextFactory<TownBulletinDbContext> DbContextFactory { get; set; } = null!;
 
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
@@ -80,8 +84,17 @@
 
     private ModalPrompt ModalPromptReference = null!;
 
+    private bool UseSecondAccount = false;
+
+    protected override Task OnInitializedAsync()
+    {
+        bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchBotUseSecondAccount"), out UseSecondAccount);
+        return base.OnInitializedAsync();
+    }
+
     public async Task RefreshState()
     {
+        bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchBotUseSecondAccount"), out UseSecondAccount);
         await InvokeAsync(StateHasChanged);
     }
 
@@ -89,7 +102,7 @@
     {
         if (await TwitchService.Initialize())
         {            
-            string? authCodeUri = await TwitchService.GetAuthorizationCodeUrl($"{TownBulletinDbContext.Settings.GetSetting("Host")}/auth/redirect");
+            string? authCodeUri = await TwitchService.GetAuthorizationCodeUrl($"{DbContextFactory.CreateDbContext().Settings.GetSetting("Host")}/auth/redirect");
             if (authCodeUri != null)
                 await JSRuntime.InvokeVoidAsync("open", authCodeUri);
         }
@@ -117,7 +130,7 @@
     {
         if (await TwitchBotService.Initialize())
         {            
-            string? authCodeUri = await TwitchBotService.GetAuthorizationCodeUrl($"{TownBulletinDbContext.Settings.GetSetting("Host")}/auth/botredirect");
+            string? authCodeUri = await TwitchBotService.GetAuthorizationCodeUrl($"{DbContextFactory.CreateDbContext().Settings.GetSetting("Host")}/auth/botredirect");
             if (authCodeUri != null)
                 await JSRuntime.InvokeVoidAsync("open", authCodeUri);
         }

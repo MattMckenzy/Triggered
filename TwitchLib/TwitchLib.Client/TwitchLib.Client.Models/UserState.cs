@@ -10,31 +10,31 @@ namespace TwitchLib.Client.Models
     public class UserState
     {
         /// <summary>Properrty representing the chat badges a specific user has.</summary>
-        public List<KeyValuePair<string, string>> Badges { get; } = new List<KeyValuePair<string, string>>();
+        public List<KeyValuePair<string, string>> Badges { get; set; } = new List<KeyValuePair<string, string>>();
 
         /// <summary>Metadata associated badgest</summary>
-        public List<KeyValuePair<string, string>> BadgeInfo { get; } = new List<KeyValuePair<string, string>>();
+        public List<KeyValuePair<string, string>> BadgeInfo { get; set; } = new List<KeyValuePair<string, string>>();
 
         /// <summary>Property representing channel.</summary>
-        public string Channel { get; }
+        public string Channel { get; set; }
 
         /// <summary>Properrty representing HEX user's name.</summary>
-        public string ColorHex { get; }
+        public string ColorHex { get; set; }
 
         /// <summary>Property representing user's display name.</summary>
-        public string DisplayName { get; }
+        public string DisplayName { get; set; }
 
         /// <summary>Property representing emote sets available to user.</summary>
-        public string EmoteSet { get; }
+        public string EmoteSet { get; set; }
 
         /// <summary>Property representing Turbo status.</summary>
-        public bool IsModerator { get; }
+        public bool IsModerator { get; set; }
 
         /// <summary>Property representing subscriber status.</summary>
-        public bool IsSubscriber { get; }
+        public bool IsSubscriber { get; set; }
 
         /// <summary>Property representing returned user type of user.</summary>
-        public UserType UserType { get; }
+        public UserType UserType { get; set; }
 
         /// <summary>
         /// Constructor for UserState.
@@ -121,6 +121,10 @@ namespace TwitchLib.Client.Models
             IsSubscriber = isSubscriber;
             IsModerator = isModerator;
             UserType = userType;
+        }
+
+        public UserState()
+        {
         }
     }
 }

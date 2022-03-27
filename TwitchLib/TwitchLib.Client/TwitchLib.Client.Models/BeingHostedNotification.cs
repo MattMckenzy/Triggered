@@ -6,15 +6,15 @@ namespace TwitchLib.Client.Models
 {
     public class BeingHostedNotification
     {
-        public string BotUsername { get; }
+        public string BotUsername { get; set; }
 
-        public string Channel { get; }
+        public string Channel { get; set; }
 
-        public string HostedByChannel { get; }
+        public string HostedByChannel { get; set; }
 
-        public bool IsAutoHosted { get; }
+        public bool IsAutoHosted { get; set; }
 
-        public int Viewers { get; }
+        public int Viewers { get; set; }
 
         public BeingHostedNotification(string botUsername, IrcMessage ircMessage)
         {
@@ -45,6 +45,10 @@ namespace TwitchLib.Client.Models
             HostedByChannel = hostedByChannel;
             Viewers = viewers;
             IsAutoHosted = isAutoHosted;
+        }
+
+        public BeingHostedNotification()
+        {
         }
     }
 }

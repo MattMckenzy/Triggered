@@ -24,7 +24,7 @@
                                 {
                                     <li class="d-flex justify-content-between">
                                         <button class="btn btn-module-load @(CurrentItem == itemKey ? "selected" : string.Empty) d-inline-flex align-items-center rounded text-white mx-4 my-1 px-1 py-0" @onclick=@(async () => await LoadCallback.InvokeAsync(itemKey))>
-                                            <span>@itemValue</span>
+                                            <span class="opacity-75">@itemValue</span>
                                         </button>
                                         <button class="btn btn-module-delete d-inline-flex align-items-center rounded text-white my-1 px-1 py-0" @onclick=@(async () => await DeleteCallback.InvokeAsync(itemKey))>
                                             🗙
@@ -45,7 +45,7 @@
 
                     <li class="d-flex justify-content-between">
                         <button class="btn btn-module-load @(CurrentItem == item.Key ? "selected" : string.Empty) d-inline-flex align-items-center rounded text-white mx-4 my-1 px-1 py-0" @onclick=@(async () => await LoadCallback.InvokeAsync(item.Key))>
-                            <span>@item.Value</span>
+                            <span  class="opacity-75">@item.Value</span>
                         </button>
                         <button class="btn btn-module-delete d-inline-flex align-items-center rounded text-white my-1 px-1 py-0" @onclick=@(async () => await DeleteCallback.InvokeAsync(item.Key))>
                             🗙

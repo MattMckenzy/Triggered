@@ -14,6 +14,6 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// Property representing hosting channel.
         /// </summary>
-        public HostingStopped HostingStopped;
+        public HostingStopped HostingStopped { get; set; } = new HostingStopped ();
     }
 }

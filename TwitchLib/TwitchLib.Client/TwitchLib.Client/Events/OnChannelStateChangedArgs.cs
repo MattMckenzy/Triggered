@@ -14,7 +14,7 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// Property representing the current channel state.
         /// </summary>
-        public ChannelState ChannelState;
+        public ChannelState ChannelState { get; set; } = new ChannelState();
         /// <summary>
         /// Property representing the channel received state from.
         /// </summary>

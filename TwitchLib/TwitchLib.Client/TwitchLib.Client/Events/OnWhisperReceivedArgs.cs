@@ -14,6 +14,6 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// The whisper message
         /// </summary>
-        public WhisperMessage WhisperMessage;
+        public WhisperMessage WhisperMessage { get; set; } = new WhisperMessage ();
     }
 }

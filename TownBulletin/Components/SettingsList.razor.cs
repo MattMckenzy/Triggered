@@ -59,7 +59,9 @@ namespace TownBulletin.Components
             "TwitchClientId",
             "TwitchClientSecret",
             "TwitchUserName",
-            "TwitchChannelName"
+            "TwitchChannelName",
+            "TwitchAccessToken",
+            "TwitchRefreshToken"
         };
 
         private readonly IEnumerable<string> TwitchLoginResetSettings = new string[]
@@ -70,10 +72,13 @@ namespace TownBulletin.Components
 
         private readonly IEnumerable<string> TwitchBotLoginSettings = new string[]
         {
+            "TwitchBotUseSecondAccount",
             "TwitchBotClientId",
             "TwitchBotClientSecret",
             "TwitchBotUserName",
-            "TwitchBotChannelName"
+            "TwitchBotChannelName",
+            "TwitchBotAccessToken",
+            "TwitchBotRefreshToken"
         };
 
         private readonly IEnumerable<string> TwitchBotLoginResetSettings = new string[]
@@ -87,6 +92,7 @@ namespace TownBulletin.Components
             "Host",
             "WebhookHost",
             "Autostart",
+            "ExternalModulesPath",
             "MessageLevels",
             "MessageNotificationsEnabled",
             "MessageNotificationVolume",
@@ -106,6 +112,7 @@ namespace TownBulletin.Components
 
         private readonly IEnumerable<string> TwitchBotSettings = new string[]
         {
+            "TwitchBotUseSecondAccount",
             "TwitchBotClientId",
             "TwitchBotClientSecret",
             "TwitchBotAccessToken",
@@ -237,6 +244,16 @@ namespace TownBulletin.Components
                         CancelChoice = "Dismiss"
                     });
                 }
+
+                if (resetSettings != null)
+                    foreach (string key in resetSettings)
+                        townBulletinDbContext.Settings.SetSetting(key, string.Empty);
+
+                if (twitchServiceBase != null)
+                    await twitchServiceBase.Logout();
+
+                if ((resetSettings?.Contains(CurrentSetting.Key, StringComparer.InvariantCultureIgnoreCase) ?? false) || CurrentSetting.Key.Equals("TwitchBotUseSecondAccount", StringComparison.InvariantCultureIgnoreCase))
+                    await MainLayout.RefreshState();
 
                 CurrentSettingKeyLocked = true;
 

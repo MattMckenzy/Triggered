@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using TownBulletin.Services;
 using TwitchLib.EventSub.Webhooks.Core.EventArgs.Channel;
 
-namespace TownBulletin.Modules.OnFollow
+namespace ModuleMaker.Modules.Twitch
 {
     public class FollowSplash
     {

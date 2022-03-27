@@ -13,7 +13,7 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// The raid notification
         /// </summary>
-        public RaidNotification RaidNotification;
+        public RaidNotification RaidNotification { get; set; } = new RaidNotification ();
         /// <summary>
         /// The channel
         /// </summary>

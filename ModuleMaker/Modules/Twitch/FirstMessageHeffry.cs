@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using TownBulletin.Services;
 using TwitchLib.Client.Events;
 
-namespace TownBulletin.Modules.OnMessageReceived
+namespace ModuleMaker.Modules.Twitch
 {
     public class FirstMessageHeffry
     {

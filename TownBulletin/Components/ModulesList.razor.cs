@@ -280,7 +280,7 @@ namespace TownBulletin.Components
 
             Modules = townBulletinDbContext.Modules.ToList();
             ModuleNames = Modules.OrderBy(module => module.Name).ToDictionary(module => module.Id.ToString()!, module => module.Name);
-            CategoryModules = Modules.OrderBy(module => module.Event).ThenBy(module => module.Name).GroupBy(module => module.Event).ToDictionary(category => category.Key.Split(".").First() + " / " + category.Key.Split(".").Last(), category => category.Select(module => module.Id.ToString()!));
+            CategoryModules = Modules.OrderBy(module => module.Event).ThenBy(module => module.Name).GroupBy(module => module.Event).ToDictionary(category => category.Key.Split(".").Last(), category => category.Select(module => module.Id.ToString()!));
 
             await InvokeAsync(StateHasChanged);
         }

@@ -135,7 +135,6 @@ namespace TownBulletin.Components
 
         private async Task SaveEventTest()
         {
-            //TODO: fix TwitchLib.CLient EventArgs public constructors and setters
             using TownBulletinDbContext townBulletinDbContext = await DbContextFactory.CreateDbContextAsync();
 
             if (townBulletinDbContext.EventTests.Any(module => module.Id == CurrentEventTest.Id))
@@ -290,7 +289,7 @@ namespace TownBulletin.Components
         {
             if (ModuleService.EventArgumentTypes.TryGetValue(@event, out Type? argumentType) && argumentType != null)
             {
-                return JsonConvert.SerializeObject(Activator.CreateInstance(argumentType), new JsonSerializerSettings { Formatting = Formatting.Indented });
+                return JsonConvert.SerializeObject(Activator.CreateInstance(argumentType), new JsonSerializerSettings { Formatting = Formatting.Indented,  });
             }
             else
                 return string.Empty;

@@ -8,7 +8,23 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\obs-websocket-dotnet\obs-websocket-dotnet\obs-websocket-dotnet.csproj" />
     <ProjectReference Include="..\TownBulletin\TownBulletin.csproj" />
+    <ProjectReference Include="..\TwitchLib.Communication\src\TwitchLib.Communication\TwitchLib.Communication.csproj" />
+    <ProjectReference Include="..\TwitchLib.EventSub.Webhooks\TwitchLib.EventSub.Webhooks\TwitchLib.EventSub.Webhooks.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Api\TwitchLib.Api.Core.Enums\TwitchLib.Api.Core.Enums.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Api\TwitchLib.Api.Core.Interfaces\TwitchLib.Api.Core.Interfaces.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Api\TwitchLib.Api.Core.Models\TwitchLib.Api.Core.Models.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Api\TwitchLib.Api.Core\TwitchLib.Api.Core.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Api\TwitchLib.Api.Helix.Models\TwitchLib.Api.Helix.Models.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Api\TwitchLib.Api.Helix\TwitchLib.Api.Helix.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Api\TwitchLib.Api.V5.Models\TwitchLib.Api.V5.Models.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Api\TwitchLib.Api.V5\TwitchLib.Api.V5.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Api\TwitchLib.Api\TwitchLib.Api.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Client\TwitchLib.Client.Enums\TwitchLib.Client.Enums.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Client\TwitchLib.Client.Models\TwitchLib.Client.Models.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Client\TwitchLib.Client\TwitchLib.Client.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.PubSub\TwitchLib.PubSub\TwitchLib.PubSub.csproj" />
   </ItemGroup>
 
 </Project>

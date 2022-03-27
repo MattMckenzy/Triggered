@@ -10,6 +10,10 @@ namespace TwitchLib.Client.Models
         /// <summary>Property representing number of viewers that were in hosting channel.</summary>
         public int Viewers;
 
+        public HostingStopped()
+        {
+        }
+
         public HostingStopped(IrcMessage ircMessage)
         {
             var splitted = ircMessage.Message.Split(' ');

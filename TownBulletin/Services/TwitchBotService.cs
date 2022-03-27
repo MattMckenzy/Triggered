@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Reflection;
 using TownBulletin.Models;
 using TwitchLib.Api.Core.Enums;
 using TwitchLib.Client;

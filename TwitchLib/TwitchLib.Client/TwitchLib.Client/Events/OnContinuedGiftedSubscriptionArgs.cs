@@ -13,7 +13,7 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// Property representing the information of the subscription that was originally gifted, and is now continued by the user.
         /// </summary>
-        public ContinuedGiftedSubscription ContinuedGiftedSubscription;
+        public ContinuedGiftedSubscription ContinuedGiftedSubscription { get; set; } = new ContinuedGiftedSubscription ();
         /// <summary>
         /// Property representing the Twitch channel this event fired from.
         /// </summary>

@@ -9,6 +9,10 @@ namespace TwitchLib.Client.Models
 {
     public class PrimePaidSubscriber : SubscriberBase
     {
+        public PrimePaidSubscriber() : base()
+        {
+        }
+
         public PrimePaidSubscriber(IrcMessage ircMessage) : base(ircMessage)
         {
         }

@@ -8,34 +8,34 @@ namespace TwitchLib.Client.Models
     public class ChannelState
     {
         /// <summary>Property representing the current broadcaster language.</summary>
-        public string BroadcasterLanguage { get; }
+        public string BroadcasterLanguage { get; set; }
 
         /// <summary>Property representing the current channel.</summary>
-        public string Channel { get; }
+        public string Channel { get; set; }
 
         /// <summary>Property representing whether EmoteOnly mode is being applied to chat or not. WILL BE NULL IF VALUE NOT PRESENT.</summary>
-        public bool? EmoteOnly { get; }
+        public bool? EmoteOnly { get; set; }
 
         /// <summary>Property representing how long needed to be following to talk. If null, FollowersOnly is not enabled.</summary>
-        public TimeSpan? FollowersOnly { get; } = null;
+        public TimeSpan? FollowersOnly { get; set; } = null;
 
         /// <summary>Property representing mercury value. Not sure what it's for.</summary>
-        public bool Mercury { get; }
+        public bool Mercury { get; set; }
 
         /// <summary>Property representing whether R9K is being applied to chat or not. WILL BE NULL IF VALUE NOT PRESENT.</summary>
-        public bool? R9K { get; }
+        public bool? R9K { get; set; }
 
         /// <summary>Property representing whether Rituals is enabled or not. WILL BE NULL IF VALUE NOT PRESENT.</summary>
-        public bool? Rituals { get; }
+        public bool? Rituals { get; set; }
 
         /// <summary>Twitch assignedc room id</summary>
-        public string RoomId { get; }
+        public string RoomId { get; set; }
 
         /// <summary>Property representing whether Slow mode is being applied to chat or not. WILL BE NULL IF VALUE NOT PRESENT.</summary>
-        public int? SlowMode { get; }
+        public int? SlowMode { get; set; }
 
         /// <summary>Property representing whether Sub Mode is being applied to chat or not. WILL BE NULL IF VALUE NOT PRESENT.</summary>
-        public bool? SubOnly { get; }
+        public bool? SubOnly { get; set; }
 
         /// <summary>ChannelState object constructor.</summary>
         public ChannelState(IrcMessage ircMessage)
@@ -108,6 +108,10 @@ namespace TwitchLib.Client.Models
             FollowersOnly = followersOnly;
             Mercury = mercury;
             RoomId = roomId;
+        }
+
+        public ChannelState()
+        {
         }
     }
 }

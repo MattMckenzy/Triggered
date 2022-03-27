@@ -19,6 +19,10 @@ namespace TwitchLib.Client.Models
         /// <summary>User that was banned. Id.</summary>
         public string TargetUserId;
 
+        public UserBan()
+        {
+        }
+
         public UserBan(IrcMessage ircMessage)
         {
             Channel = ircMessage.Channel;

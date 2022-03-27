@@ -18,6 +18,10 @@
             Channel = channel;
         }
 
+        public JoinedChannel()
+        {
+        }
+
         /// <summary>Handles a message</summary>
         public void HandleMessage(ChatMessage message)
         {

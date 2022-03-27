@@ -16,6 +16,7 @@ using TwitchLib.EventSub.Webhooks.Extensions;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 IConfiguration configuration = builder.Configuration;
 
+// TODO: Create self-signed certificate.
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.Configure(configuration.GetSection("Kestrel"), true);

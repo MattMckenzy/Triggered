@@ -14,6 +14,6 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// Property representing exception object.
         /// </summary>
-        public ErrorLoggingInException Exception;
+        public ErrorLoggingInException Exception { get; set; } = new ErrorLoggingInException ();
     }
 }

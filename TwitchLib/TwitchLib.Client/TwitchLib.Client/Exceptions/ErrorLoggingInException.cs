@@ -27,5 +27,9 @@ namespace TwitchLib.Client.Exceptions
         {
             Username = twitchUsername;
         }
+
+        public ErrorLoggingInException()
+        {
+        }
     }
 }

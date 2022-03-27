@@ -13,6 +13,6 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// The exception
         /// </summary>
-        public FailureToReceiveJoinConfirmationException Exception;
+        public FailureToReceiveJoinConfirmationException Exception { get; set; } = new FailureToReceiveJoinConfirmationException ();
     }
 }

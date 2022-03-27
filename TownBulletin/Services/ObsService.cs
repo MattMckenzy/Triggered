@@ -68,11 +68,6 @@ namespace TownBulletin.Services
                 }
 
                 _obsPassword = await _encryptionService.Decrypt("ObsPassword", townBulletinDbContext.Settings.GetSetting("ObsPassword"));
-                if (string.IsNullOrWhiteSpace(_obsPassword))
-                {
-                    await _messagingService.AddMessage("The setting \"ObsPassword\" must not be empty!", MessageCategory.Service, LogLevel.Error);
-                    return;
-                }
 
                 _moduleService.RegisterEvents(OBSWebsocket);
 

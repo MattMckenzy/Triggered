@@ -9,10 +9,10 @@ namespace TwitchLib.Client.Models
     public class EmoteSet
     {
         /// <summary>List containing all emotes in the message.</summary>
-        public List<Emote> Emotes { get; }
+        public List<Emote> Emotes { get; set; }
 
         /// <summary>The raw emote set string obtained from Twitch, for legacy purposes.</summary>
-        public string RawEmoteSetString { get; }
+        public string RawEmoteSetString { get; set; }
 
         /// <summary>Constructor for ChatEmoteSet object.</summary>
         /// <param name="rawEmoteSetString"></param>
@@ -32,6 +32,10 @@ namespace TwitchLib.Client.Models
         {
             RawEmoteSetString = emoteSetData;
             Emotes = emotes.ToList();
+        }
+
+        public EmoteSet()
+        {
         }
     }
 }

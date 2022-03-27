@@ -14,7 +14,7 @@ namespace TwitchLib.Client.Events
         /// <summary>
         /// Property representing resubscriber object.
         /// </summary>
-        public ReSubscriber ReSubscriber;
+        public ReSubscriber ReSubscriber { get; set; } = new ReSubscriber ();
         /// <summary>
         /// Property representing the Twitch channel this event fired from.
         /// </summary>
