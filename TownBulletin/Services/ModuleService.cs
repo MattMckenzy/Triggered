@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using TownBulletin.Extensions;
 using TownBulletin.Models;
 
 namespace TownBulletin.Services
@@ -32,6 +33,8 @@ namespace TownBulletin.Services
 
         public Dictionary<string, IEnumerable<(string name, string value, string kind)>> NetObjects { get; } = new();
 
+        public event EventHandler<CustomEventArgs>? OnCustomEvent;
+
         #endregion
 
         #region Constructor
@@ -40,10 +43,6 @@ namespace TownBulletin.Services
         {
             _dbContextFactory = dbContextFactory;
             _messagingService = messagingService;
-
-            SupportedEvents.Add("TownBulletin.Custom", "Custom");
-            EventArgumentTypes.Add("TownBulletin.Custom", typeof(CustomEventArgs));
-            SupportedArgumentTypes.Add("CustomEventArgs", typeof(CustomEventArgs));
 
             IntializeNetObjects();
 
@@ -55,14 +54,25 @@ namespace TownBulletin.Services
                 (nameof(MessagingService), typeof(MessagingService), _messagingService),
                 (nameof(IDbContextFactory<TownBulletinDbContext>), typeof(IDbContextFactory<TownBulletinDbContext>), dbContextFactory)
             });
+
+            SupportedEvents.Add("ModuleService.OnCustomEvent", "Custom");
+            EventArgumentTypes.Add("ModuleService.OnCustomEvent", typeof(CustomEventArgs));
+            SupportedArgumentTypes.Add("CustomEventArgs", typeof(CustomEventArgs));
+            RegisterEvents(this);
         }
 
         public void IntializeNetObjects()   
         {
             // TODO: Make autocomplete smarter.
-            IEnumerable<Assembly> assemblies = Assembly.GetExecutingAssembly().GetReferencedAssemblies()
-            .Select(item => Assembly.Load(item))
-            .Union(AppDomain.CurrentDomain.GetAssemblies());
+
+            List<Assembly> assemblies = new();
+            assemblies.AddRange(Assembly.GetExecutingAssembly().GetReferencedAssemblies()
+                .Select(item => Assembly.Load(item)));
+
+            assemblies.AddRange(AppDomain.CurrentDomain.GetAssemblies());
+
+            if (_dbContextFactory.CreateDbContext().Settings.GetSetting("ExternalResourcesPath").TryCreateDirectory(out DirectoryInfo? directoryInfo))
+                assemblies.AddRange(directoryInfo!.GetFiles("*.dll", SearchOption.AllDirectories).Select(referenceFile => Assembly.LoadFile(referenceFile.FullName)));
 
             foreach (Type type in assemblies.SelectMany(assembly => assembly.GetTypes()))
             {
@@ -236,40 +246,13 @@ namespace TownBulletin.Services
 
         public (CompiledModule? CompiledModule, IEnumerable<string> Warnings, IEnumerable<string> Errors) CompileAndAnalyzeModule(Models.Module module)
         {
-            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(module.Code);
-
-            string assemblyName = Path.GetRandomFileName();
-            MetadataReference[] references = Assembly.GetExecutingAssembly().GetReferencedAssemblies()
-                .Select((item) => MetadataReference.CreateFromFile(Assembly.Load(item).Location))
-                .Union(((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
-                    .Select(path => MetadataReference.CreateFromFile(path))).ToArray();
-
-            CSharpCompilation compilation = CSharpCompilation.Create(
-                assemblyName,
-                syntaxTrees: new[] { syntaxTree },
-                references: references,
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
-            IEnumerable<MethodDeclarationSyntax> methods = compilation.SyntaxTrees
-                .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().ToList());
-
-            using var memoryStream = new MemoryStream();
-            EmitResult result = compilation.Emit(memoryStream);
-
             CompiledModule? compiledModule = null;
             List<string> compilationWarnings = new();
             List<string> compilationErrors = new();
 
-            IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic =>
-                diagnostic.IsWarningAsError ||
-                diagnostic.Severity == DiagnosticSeverity.Error);
-            compilationErrors.AddRange(failures.Select(failure => $"{failure.Id}: {failure.GetMessage()}"));
+            CompileCode(module.Code, out CSharpCompilation compilation, out SemanticModel semanticModel, out IEnumerable<MethodDeclarationSyntax> methodDeclarationSyntaxes);
 
-            IEnumerable<Diagnostic> warnings = result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning);
-            compilationWarnings.AddRange(warnings.Select(failure => $"{failure.Id}: {failure.GetMessage()}"));
-
-            SemanticModel semanticModel = compilation.GetSemanticModel(syntaxTree, true);
-            MethodDeclarationSyntax? methodDeclarationSyntax = methods.FirstOrDefault(method => method.Identifier.Text.Equals(module.EntryMethod));
+            MethodDeclarationSyntax? methodDeclarationSyntax = methodDeclarationSyntaxes.FirstOrDefault(method => method.Identifier.Text.Equals(module.EntryMethod));
 
             if (methodDeclarationSyntax != null)
             {
@@ -295,6 +278,17 @@ namespace TownBulletin.Services
                     returnTypeArgumentSymbol != null &&
                     returnTypeArgumentSymbol.Name.Equals("Boolean"))
                 {
+                    using var memoryStream = new MemoryStream();
+                    EmitResult result = compilation.Emit(memoryStream);
+
+                    IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic =>
+                        diagnostic.IsWarningAsError ||
+                        diagnostic.Severity == DiagnosticSeverity.Error);
+                    compilationErrors.AddRange(failures.Select(failure => $"{failure.Id}: {failure.GetMessage()}"));
+
+                    IEnumerable<Diagnostic> warnings = result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning);
+                    compilationWarnings.AddRange(warnings.Select(failure => $"{failure.Id}: {failure.GetMessage()}"));
+
                     if (result.Success)
                     {
                         memoryStream.Seek(0, SeekOrigin.Begin);
@@ -316,7 +310,7 @@ namespace TownBulletin.Services
                                 arguments) ?? Task.FromResult(false));
                         }
                         else
-                            compilationErrors.Add($"Module entry method type \"{methodSymbol.ToDisplayString()}\" was not able to discerned from the code.");                        
+                            compilationErrors.Add($"Module entry method type \"{methodSymbol.ToDisplayString()}\" was not able to discerned from the code.");
                     }
                 }
                 else
@@ -326,6 +320,33 @@ namespace TownBulletin.Services
                 compilationErrors.Add($"Module entry method \"{module.EntryMethod}\" was not found in the code.");
 
             return (compiledModule, compilationWarnings, compilationErrors);
+        }
+
+        public string? GetCodeEvent(string code)
+        {
+            string? returnEvent = null;
+
+            CompileCode(code, out CSharpCompilation compilation, out SemanticModel semanticModel, out IEnumerable<MethodDeclarationSyntax> methodDeclarationSyntaxes);
+
+            foreach (MethodDeclarationSyntax methodDeclarationSyntax in methodDeclarationSyntaxes)
+            {
+                List<Type> parameterTypes = new();
+                foreach (ParameterSyntax parameterSyntax in methodDeclarationSyntax.ParameterList.Parameters)
+                {
+                    string? typeName = semanticModel.GetDeclaredSymbol(parameterSyntax)?.Type.Name;
+                    if (typeName != null && 
+                        SupportedArgumentTypes.TryGetValue(typeName, out Type? parameterType) &&
+                        parameterType != null)
+                        returnEvent = EventArgumentTypes.FirstOrDefault(eventArgumentType => eventArgumentType.Value.Equals(parameterType)).Key;                    
+                    else
+                        continue;
+
+                    if (!string.IsNullOrEmpty(returnEvent))
+                        return returnEvent;
+                }
+            }
+
+            return returnEvent;
         }
 
         public void AddModule(Models.Module module)
@@ -447,7 +468,36 @@ namespace TownBulletin.Services
             }
 
             return compiledModule;
-        }      
+        }
+
+        private void CompileCode(string moduleCode, out CSharpCompilation compilation, out SemanticModel semanticModel, out IEnumerable<MethodDeclarationSyntax> methodDeclarationSyntaxes)
+        {
+            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(moduleCode);
+
+            string assemblyName = Path.GetRandomFileName();
+
+            List<MetadataReference> references = new();
+
+            references.AddRange(Assembly.GetExecutingAssembly().GetReferencedAssemblies()
+                .Select((item) => MetadataReference.CreateFromFile(Assembly.Load(item).Location)));
+
+            references.AddRange(((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
+                    .Select(path => MetadataReference.CreateFromFile(path)));
+
+            if (_dbContextFactory.CreateDbContext().Settings.GetSetting("ExternalResourcesPath").TryCreateDirectory(out DirectoryInfo? directoryInfo))           
+                references.AddRange(directoryInfo!.GetFiles("*.dll", SearchOption.AllDirectories).Select(referenceFile => MetadataReference.CreateFromFile(referenceFile.FullName)));            
+
+            compilation = CSharpCompilation.Create(
+                assemblyName,
+                syntaxTrees: new[] { syntaxTree },
+                references: references,
+                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+            methodDeclarationSyntaxes = compilation.SyntaxTrees
+                .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().ToList());
+
+            semanticModel = compilation.GetSemanticModel(syntaxTree, true);
+        }
 
         #endregion
     }

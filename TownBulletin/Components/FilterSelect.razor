@@ -2,7 +2,8 @@
 @inherits RenderComponentBase
 
 <div @ref=MenuRef class="dropdown menu-actions">
-    <input id="dropdownToggle@(Id)" class="btn btn-light dropdown-toggle text-start form-control w-100@(IsValid ? " is-valid" : " is-invalid")" type="text" role="menubutton" aria-haspopup="true" aria-controls="dropdownMenu@(Id)" aria-expanded="false" value=@SelectedText @oninput=Filter>
+    <input id="dropdownToggle@(Id)" class="btn btn-light dropdown-toggle text-start form-control w-100@(Validate ? (IsValid ? " is-valid" : " is-invalid") : string.Empty)" type="text" role="menubutton" 
+        placeholder="@PlaceholderText" aria-haspopup="true" aria-controls="dropdownMenu@(Id)" aria-expanded="false" value=@SelectedText @oninput=Filter>
     </input>
     <div id="dropdownMenu@(Id)" class="dropdown-menu" aria-labelledby="dropdownToggle@(Id)" role="menu">
     @if (FilteredOptions.Any())
@@ -34,7 +35,7 @@
     }
     else
     {            
-        <button class="dropdown-item disabled" disabled>No events found...</button>
+        <button class="dropdown-item disabled" disabled>@NoOptionsText</button>
     }
     </div>
 </div>
@@ -54,6 +55,15 @@
 
     [Parameter]
     public EventCallback<ChangeEventArgs> OnChange { get; set; }
+
+    [Parameter]
+    public string? PlaceholderText { get; set; }
+
+    [Parameter]
+    public string? NoOptionsText { get; set; }
+
+    [Parameter]
+    public bool Validate { get; set; } = true;
 
     private ElementReference MenuRef { get; set; }
 

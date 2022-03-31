@@ -23,16 +23,16 @@
         }
     </div>
     <div class="col-auto mb-3">
-        @if (IsTwitchBotServiceActivated)
+        @if (IsTwitchChatServiceActivated)
         {    
-            <button type="button" class="btn btn-danger" @onclick=StopTwitchBotService>
-                <span class="">Stop Twitch Bot Service</span>
+            <button type="button" class="btn btn-danger" @onclick=StopTwitchChatService>
+                <span class="">Stop Twitch Chat Service</span>
             </button>
         }
         else
         {    
-            <button type="button" class="btn btn-primary" @onclick=StartTwitchBotService>
-                <span class="">Start Twitch Bot Service</span>
+            <button type="button" class="btn btn-primary" @onclick=StartTwitchChatService>
+                <span class="">Start Twitch Chat Service</span>
             </button>
         }
     </div>
@@ -64,7 +64,7 @@
     [Inject]
     private TwitchService TwitchService { get; set; } = null!;
     [Inject]
-    private TwitchBotService TwitchBotService { get; set; } = null!;
+    private TwitchChatService TwitchChatService { get; set; } = null!;
     [Inject]
     private ObsService ObsService { get; set; } = null!;
 
@@ -72,7 +72,7 @@
     private TownBulletinDbContext TownBulletinDbContext { get; set; } = null!;
 
     private bool IsTwitchServiceActivated { get; set; } = false;
-    private bool IsTwitchBotServiceActivated { get; set; } = false;
+    private bool IsTwitchChatServiceActivated { get; set; } = false;
     private bool IsObsServiceActivated { get; set; } = false;
 
     protected override Task OnInitializedAsync()
@@ -80,8 +80,8 @@
         IsTwitchServiceActivated = TwitchService.IsActive;
         TwitchService.ServiceStatusChanged += TwitchServcice_ServiceStatusChanged;
                 
-        IsTwitchBotServiceActivated = TwitchBotService.IsActive;
-        TwitchBotService.ServiceStatusChanged += TwitchBotService_ServiceStatusChanged;
+        IsTwitchChatServiceActivated = TwitchChatService.IsActive;
+        TwitchChatService.ServiceStatusChanged += TwitchChatService_ServiceStatusChanged;
 
         IsObsServiceActivated = ObsService.IsActive;
         ObsService.ServiceStatusChanged += ObsService_ServiceStatusChanged;
@@ -105,20 +105,20 @@
         await TwitchService.StopAsync();
     }
     
-    private async void TwitchBotService_ServiceStatusChanged(object? obj, EventArgs e)
+    private async void TwitchChatService_ServiceStatusChanged(object? obj, EventArgs e)
     {               
-        IsTwitchBotServiceActivated = TwitchBotService.IsActive;
+        IsTwitchChatServiceActivated = TwitchChatService.IsActive;
         await InvokeAsync(StateHasChanged);
     }
 
-    private async void StartTwitchBotService()
+    private async void StartTwitchChatService()
     {
-        await TwitchBotService.StartAsync();
+        await TwitchChatService.StartAsync();
     }
 
-    private async void StopTwitchBotService()
+    private async void StopTwitchChatService()
     {
-        await TwitchBotService.StopAsync();
+        await TwitchChatService.StopAsync();
     }
 
     private async void ObsService_ServiceStatusChanged(object? obj, EventArgs e)

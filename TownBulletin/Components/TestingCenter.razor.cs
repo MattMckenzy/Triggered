@@ -247,7 +247,7 @@ namespace TownBulletin.Components
             EventTests = townBulletinDbContext.EventTests.ToList();
             EventTestNames = EventTests.OrderBy(eventTest => eventTest.Name).ToDictionary(eventTest => eventTest.Id.ToString()!, eventTest => eventTest.Name);
             CategoryEventTests = EventTests.OrderBy(eventTest => eventTest.Name).ThenBy(eventTest => eventTest.Event).GroupBy(module => module.Event)
-                .ToDictionary(category => category.Key.Split(".").First() + " / " + category.Key.Split(".").Last(), category => category.Select(module => module.Id.ToString()!));
+                .ToDictionary(category => category.Key, category => category.Select(module => module.Id.ToString()!));
 
             await InvokeAsync(StateHasChanged);
         }

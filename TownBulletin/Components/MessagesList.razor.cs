@@ -26,7 +26,7 @@ namespace TownBulletin.Components
         private bool IsRendered = false;
         private bool DisposedValue = false;
 
-        //TODO: Add Sort, Search and pagination to list.
+        //TODO: Add Sort, Search list.
         protected override async Task OnInitializedAsync()
         {
             IsMuted = TownBulletinDbContext.Settings.GetSetting("MessageNotificationsEnabled")

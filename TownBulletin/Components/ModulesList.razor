@@ -7,7 +7,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <img src="assets/csharp.png" height="20" class="rounded me-2" alt="C#">
-                <strong class="modal-title">Code Editor</strong>
+                <strong class="modal-title me-2">Code Editor</strong>
+                <span class="me-2">@(ModuleService.SupportedEvents[CurrentModule.Event]) (@ModuleService.EventArgumentTypes[CurrentModule.Event].Name)</span>   
                 <button type="button" class="btn-close" data-bs-dismiss="modal" @onclick=CompileCode></button>
             </div>
             <div class="modal-body m-0 p-0">
@@ -47,6 +48,8 @@
                     ModuleService.SupportedEvents.Select(keyValuePair => 
                         new KeyValuePair<string, string>(keyValuePair.Key, 
                             keyValuePair.Key.Split(".", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? string.Empty))))
+                PlaceholderText="Events..."
+                NoOptionsText="No events found..."
                 OnChange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentModule.Event), changeEventArgs.Value!))></FilterSelect>
         </div>
         <div class="mb-3">
@@ -69,10 +72,25 @@
             <input type="checkbox" class="form-check-input" id="isEnabled" checked=@CurrentModule.IsEnabled 
                 @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentModule.IsEnabled), changeEventArgs.Value!))>
         </div> 
-        <div class="mb-3">
-            <button type="button" class="btn btn-@(CompiledModule == null ? "danger" : "primary") me-2" data-bs-toggle="modal" data-bs-target="#codeModal" id="codeButton" @onclick=ReplaceCodeTemplates>
+        <div class="d-flex flex-wrap mb-3">
+            <button type="button" class="btn btn-@(CompiledModule == null ? "danger" : "primary") me-3" data-bs-toggle="modal" data-bs-target="#codeModal" id="codeButton" @onclick=ReplaceCodeTemplates>
                 Edit Code
             </button>
+            <button type="button" class="btn btn-sm btn-danger bi bi-eraser-fill me-3" data-bs-dismiss="modal" @onclick=ResetCode></button>
+            @if (ExternalModules.Values.Where(module => module.Event.Equals(CurrentModule.Event) || string.IsNullOrWhiteSpace(module.Event)).Any())
+            {                 
+                <div class="me-3">
+                <FilterSelect Selected=@(ExternalModules.First().Key)
+                    Options=@(
+                    ExternalModules.Where(externalModule => externalModule.Value.Event.Equals(CurrentModule.Event) || string.IsNullOrWhiteSpace(externalModule.Value.Event))
+                        .ToDictionary(externalModule => externalModule.Key, externalModule => externalModule.Key))
+                    Categories=null
+                    PlaceholderText="External Modules..."
+                    NoOptionsText="No modules found..."
+                    Validate=false
+                    OnChange=@(async (ChangeEventArgs changeEventArgs) => await SetExternalModule((string)changeEventArgs.Value!))></FilterSelect>
+                </div>            
+            }
         </div>
         <div>
             <button class="btn btn-success @(!CurrentModuleIsValid || !CurrentModuleIsDirty ? "disabled" : string.Empty)" @onclick="SaveModule" disabled="@(!CurrentModuleIsValid || !CurrentModuleIsDirty)">

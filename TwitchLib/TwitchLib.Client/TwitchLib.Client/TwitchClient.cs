@@ -1008,7 +1008,7 @@ namespace TwitchLib.Client
                     foreach (KeyValuePair<string, DateTime> expiredChannel in expiredChannels)
                     {
                         _joinedChannelManager.RemoveJoinedChannel(expiredChannel.Key.ToLowerInvariant());
-                        OnFailureToReceiveJoinConfirmation?.Invoke(this, new OnFailureToReceiveJoinConfirmationArgs { Exception = new FailureToReceiveJoinConfirmationException(expiredChannel.Key) });
+                        OnFailureToReceiveJoinConfirmation?.Invoke(this, new OnFailureToReceiveJoinConfirmationArgs { Exception = new FailureToReceiveJoinConfirmationException(expiredChannel.Key, "Channel join timeout.") });
                     }
                 }
             }
@@ -1123,12 +1123,17 @@ namespace TwitchLib.Client
         /// </summary>
         /// <param name="ircMessage">The irc message.</param>
         private void HandlePrivMsg(IrcMessage ircMessage)
-        {
+        { 
             if (ircMessage.Hostmask.Equals("jtv!jtv@jtv.tmi.twitch.tv"))
             {
                 BeingHostedNotification hostNotification = new BeingHostedNotification(TwitchUsername, ircMessage);
                 OnBeingHosted?.Invoke(this, new OnBeingHostedArgs { BeingHostedNotification = hostNotification });
                 return;
+            }
+
+            if (ircMessage.Tags.ContainsKey("first-msg") && ircMessage.Tags["first-msg"] == "1")
+            {
+                OnRitualNewChatter?.Invoke(this, new OnRitualNewChatterArgs { RitualNewChatter = new RitualNewChatter(ircMessage) });
             }
 
             ChatMessage chatMessage = new ChatMessage(TwitchUsername, ircMessage, ref _channelEmotes, WillReplaceEmotes);

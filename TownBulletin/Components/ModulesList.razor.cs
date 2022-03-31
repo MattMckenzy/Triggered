@@ -25,9 +25,6 @@ namespace TownBulletin.Components
         [Inject]
         private MessagingService MessagingService { get; set; } = null!;
 
-        [Inject]
-        private IWebHostEnvironment IWebHostEnvironment { get; set; } = null!;
-
         #endregion
 
         #region Private Variables
@@ -47,6 +44,7 @@ namespace TownBulletin.Components
         private object? CodeEditorRef = null;
         private MarkupString CodeAnalysisResults = new();
         private CompiledModule? CompiledModule = null;
+        private readonly Dictionary<string, Module> ExternalModules = new();
 
         private ModalPrompt ModalPromptReference = null!;
 
@@ -54,11 +52,17 @@ namespace TownBulletin.Components
 
         #region Lifecycle Methods
 
+        protected override Task OnInitializedAsync()
+        {
+            _ = Task.Run(PopulateExternalModules);
+            return base.OnInitializedAsync();
+        }
+
         protected async override Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
             {
-                CodeTemplate = await File.ReadAllTextAsync(Path.Combine(IWebHostEnvironment.ContentRootPath, "Resources", "ModuleTemplate.cs"));
+                CodeTemplate = DbContextFactory.CreateDbContext().Settings.GetSetting("ModuleTemplate");
                 await SetCurrentModule(new Module() { Code = CodeTemplate });
 
                 ModulesGridHelper = DotNetObjectReference.Create(this);
@@ -84,6 +88,51 @@ namespace TownBulletin.Components
                 CompileCode();
 
             await UpdatePageState();
+        }
+
+        private Task PopulateExternalModules()
+        {
+            ExternalModules.Clear();
+            if (DbContextFactory.CreateDbContext().Settings.GetSetting("ExternalResourcesPath").TryCreateDirectory(out DirectoryInfo? directoryInfo))
+                foreach (FileInfo module in directoryInfo!.EnumerateFiles("*.cs", SearchOption.AllDirectories).OrderBy(file => file.Name))
+                {
+                    string moduleCode = File.ReadAllText(module.FullName);
+                    string? eventName = ModuleService.GetCodeEvent(moduleCode);
+
+                    string moduleName = Path.GetRelativePath(directoryInfo!.FullName, module.FullName); 
+                    
+                    ExternalModules.Add(moduleName, new Module
+                    {
+                        Name = moduleName,
+                        Code = moduleCode,
+                        Event = eventName ?? string.Empty
+                    });
+                }
+
+            return Task.CompletedTask;
+        }
+
+        private async Task SetExternalModule(string externalModuleKey)
+        {
+            async void setCode()
+            {
+                CurrentModule.Code = ExternalModules[externalModuleKey].Code;
+                await ReplaceCodeTemplates();
+                CompileCode();
+            };
+
+            if (CurrentModule.Code != await ReplaceCodeTemplatesInternal(CodeTemplate))
+                await ModalPromptReference.ShowModalPrompt(new()
+                {
+                    Title = "WARNING: Losing code changes!",
+                    Message = $"Are you sure you want to replace the current code with the external module \"{externalModuleKey}\" and lose your changes?",
+                    CancelChoice = "Cancel",
+                    Choice = "Yes",
+                    ChoiceColour = "danger",
+                    ChoiceAction = setCode
+                });
+            else
+                setCode();
         }
 
         private async Task CreateModule()
@@ -220,20 +269,7 @@ namespace TownBulletin.Components
 
         private async Task ReplaceCodeTemplates()
         {
-            //TODO: Create template list
-
-            CurrentModule.Code = CurrentModule.Code
-                .Replace(@"/*EventName*/", ModuleService.SupportedEvents[CurrentModule.Event])
-                .Replace(@"/*EventArgs*/", ModuleService.EventArgumentTypes[CurrentModule.Event].Name);
-
-            if (!string.IsNullOrWhiteSpace(CurrentModule.Name))
-                CurrentModule.Code =
-                    CurrentModule.Code.Replace(@"/*ModuleName*/", CurrentModule.EntryMethod.Equals(CurrentModule.Name) ? $"{ModuleService.SupportedEvents[CurrentModule.Event]}{CurrentModule.Name}" : CurrentModule.Name);
-
-            if (!string.IsNullOrWhiteSpace(CurrentModule.EntryMethod))
-                CurrentModule.Code =
-                    CurrentModule.Code.Replace(@"/*EntryMethod*/", CurrentModule.EntryMethod);
-
+            CurrentModule.Code = await ReplaceCodeTemplatesInternal(CurrentModule.Code);
             await JSRuntime.InvokeAsync<string>("setCode", CodeEditorRef, CurrentModule.Code);
             await UpdatePageState();
         }
@@ -265,6 +301,22 @@ namespace TownBulletin.Components
 
         #region Helper Methods
 
+        private Task<string> ReplaceCodeTemplatesInternal(string code)
+        {
+            code = code
+            .Replace(@"/*EventName*/", ModuleService.SupportedEvents[CurrentModule.Event])
+            .Replace(@"/*EventArgs*/", ModuleService.EventArgumentTypes[CurrentModule.Event].Name);
+
+            if (!string.IsNullOrWhiteSpace(CurrentModule.Name))
+                code =
+                    code.Replace(@"/*ModuleName*/", CurrentModule.EntryMethod.Equals(CurrentModule.Name) ? $"{ModuleService.SupportedEvents[CurrentModule.Event]}{CurrentModule.Name}" : CurrentModule.Name);
+
+            if (!string.IsNullOrWhiteSpace(CurrentModule.EntryMethod))
+                code = code.Replace(@"/*EntryMethod*/", CurrentModule.EntryMethod);
+
+            return Task.FromResult(code);
+        }
+
         private async Task UpdatePageState()
         {
             CurrentModuleIsValid =
@@ -280,11 +332,10 @@ namespace TownBulletin.Components
 
             Modules = townBulletinDbContext.Modules.ToList();
             ModuleNames = Modules.OrderBy(module => module.Name).ToDictionary(module => module.Id.ToString()!, module => module.Name);
-            CategoryModules = Modules.OrderBy(module => module.Event).ThenBy(module => module.Name).GroupBy(module => module.Event).ToDictionary(category => category.Key.Split(".").Last(), category => category.Select(module => module.Id.ToString()!));
+            CategoryModules = Modules.OrderBy(module => module.Event).ThenBy(module => module.Name).GroupBy(module => module.Event).ToDictionary(category => category.Key, category => category.Select(module => module.Id.ToString()!));
 
             await InvokeAsync(StateHasChanged);
         }
-
 
         private async Task SetCurrentModule(Module module)
         {
@@ -292,6 +343,24 @@ namespace TownBulletin.Components
             await JSRuntime.InvokeAsync<string>("setCode", CodeEditorRef, CurrentModule.Code);
             await UpdatePageState();
             CompileCode();
+        }
+
+        private async Task ResetCode()
+        {
+            await ModalPromptReference.ShowModalPrompt(new()
+            {
+                Title = "WARNING: Losing code changes!",
+                Message = $"Are you sure you want to replace the current code with templated code and lose any changes?",
+                CancelChoice = "Cancel",
+                Choice = "Yes",
+                ChoiceColour = "danger",
+                ChoiceAction = async () =>
+                {
+                    CurrentModule.Code = CodeTemplate;
+                    await ReplaceCodeTemplates();
+                    CompileCode();
+                }
+            });
         }
 
         private bool IsAnalysing = false;

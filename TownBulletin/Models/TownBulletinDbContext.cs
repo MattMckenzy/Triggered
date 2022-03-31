@@ -17,6 +17,7 @@ namespace TownBulletin.Models
         public DbSet<Vector> Vectors => Set<Vector>();
         public DbSet<Module> Modules => Set<Module>();
         public DbSet<EventTest> EventTests => Set<EventTest>();
+        public DbSet<DataObject> DataObjects => Set<DataObject>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

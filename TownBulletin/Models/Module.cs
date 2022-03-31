@@ -9,7 +9,7 @@ namespace TownBulletin.Models
     {
         public Module(
             string name = "",
-            string @event = "TownBulletin.Custom",
+            string @event = "ModuleService.OnCustomEvent",
             string code = "",
             string entryMethod = "",
             int executionOrder  = 0,

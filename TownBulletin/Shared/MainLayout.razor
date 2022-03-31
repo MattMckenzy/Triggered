@@ -35,21 +35,21 @@
 
             @if (UseSecondAccount)
             {
-                if(TwitchBotService.IsLoggedIn && TwitchBotService.User != null)
+                if(TwitchChatService.IsLoggedIn && TwitchChatService.User != null)
                 {
-                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnBotLogoutClick>
-                        <img class="auth-circle" src="@TwitchBotService.User.ProfileImageUrl" />   
+                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnChatLogoutClick>
+                        <img class="auth-circle" src="@TwitchChatService.User.ProfileImageUrl" />   
                     </button>             
                 }
-                else if(TwitchBotService.IsLoggedIn)
+                else if(TwitchChatService.IsLoggedIn)
                 {                
-                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnBotLoginClick>
+                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnChatLoginClick>
                         <i class="auth-circle bi-x-lg" />   
                     </button>                         
                 }
                 else
                 {                
-                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnBotLoginClick>
+                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnChatLoginClick>
                         <img class="auth-circle" src="assets/TwitchGlitchBlackOps.svg"  />     
                     </button>                         
                 }
@@ -71,7 +71,7 @@
     private TwitchService TwitchService { get; set; } = null!;
 
     [Inject]
-    private TwitchBotService TwitchBotService { get; set; } = null!;
+    private TwitchChatService TwitchChatService { get; set; } = null!;
 
     [Inject]
     private IDbContextFactory<TownBulletinDbContext> DbContextFactory { get; set; } = null!;
@@ -88,13 +88,13 @@
 
     protected override Task OnInitializedAsync()
     {
-        bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchBotUseSecondAccount"), out UseSecondAccount);
+        bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchChatUseSecondAccount"), out UseSecondAccount);
         return base.OnInitializedAsync();
     }
 
     public async Task RefreshState()
     {
-        bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchBotUseSecondAccount"), out UseSecondAccount);
+        bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchChatUseSecondAccount"), out UseSecondAccount);
         await InvokeAsync(StateHasChanged);
     }
 
@@ -126,11 +126,11 @@
         });
     }
 
-    private async void OnBotLoginClick()
+    private async void OnChatLoginClick()
     {
-        if (await TwitchBotService.Initialize())
+        if (await TwitchChatService.Initialize())
         {            
-            string? authCodeUri = await TwitchBotService.GetAuthorizationCodeUrl($"{DbContextFactory.CreateDbContext().Settings.GetSetting("Host")}/auth/botredirect");
+            string? authCodeUri = await TwitchChatService.GetAuthorizationCodeUrl($"{DbContextFactory.CreateDbContext().Settings.GetSetting("Host")}/auth/chatredirect");
             if (authCodeUri != null)
                 await JSRuntime.InvokeVoidAsync("open", authCodeUri);
         }
@@ -138,17 +138,17 @@
         NavigationManager.NavigateTo("/", true);
     }
 
-    private async void OnBotLogoutClick()
+    private async void OnChatLogoutClick()
     {
         await ModalPromptReference.ShowModalPrompt(new()
         {
-            Title = "WARNING: Bot logging out of Twitch!",
-            Message = $"Are you sure you want to have the bot logout and stop the TwitchBot service?",
+            Title = "WARNING: Chat account logging out of Twitch!",
+            Message = $"Are you sure you want to have the chat account logout and stop the TwitchChat service?",
             CancelChoice = "Cancel",
             Choice = "Yes",
             ChoiceColour = "danger",
             ChoiceAction = async () => {
-                await TwitchBotService.Logout();
+                await TwitchChatService.Logout();
                 NavigationManager.NavigateTo("/", true); 
             }
         });

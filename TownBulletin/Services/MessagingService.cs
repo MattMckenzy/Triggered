@@ -1,20 +1,31 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
+using TownBulletin.Extensions;
 using TownBulletin.Models;
 
 namespace TownBulletin.Services
 {
     public class MessagingService
     {        
-        //TODO: make list bounded, with configurable size.
         private int _currentMessageId = 0;
         private readonly ConcurrentDictionary<int, Message> _messages = new();
+        private readonly IDbContextFactory<TownBulletinDbContext> _dBContextFactory;
+
+        public MessagingService(IDbContextFactory<TownBulletinDbContext> dBContextFactory)
+        {
+            _dBContextFactory = dBContextFactory;
+        }
 
         public Task AddMessage(string text, MessageCategory messageCategory = MessageCategory.Undefined, LogLevel logLevel = LogLevel.Information)
         {
+            int limit = int.TryParse(_dBContextFactory.CreateDbContext().Settings.GetSetting("MessagesLimit"), out int messageLimit) ? messageLimit : 1000;
+            
             Message message;
             lock (_messages)
             {
+                while (_messages.Count > limit)
+                    _messages.TryRemove(_messages.MinBy(keyValuePair =>  keyValuePair.Key).Key, out _);
                 message = new(text, _currentMessageId++, messageCategory, logLevel);
                 _messages.TryAdd(message.Id, message);
             }
@@ -22,7 +33,6 @@ namespace TownBulletin.Services
             MessagesChanged?.Invoke(this, new() { Value = message });
             return Task.CompletedTask;
         }
-
 
         public Task<Message> GetMessage(int id)
         {
@@ -33,7 +43,6 @@ namespace TownBulletin.Services
 
             return Task.FromResult(message);
         }
-
 
         public Task<IEnumerable<Message>> GetMessages()
         {

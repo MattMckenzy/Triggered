@@ -7,16 +7,12 @@
     <UserSecretsId>f84e9c04-ad72-4cf3-a90d-3e7cf02caefb</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>.</DockerfileContext>
-    <AssemblyVersion>0.1.5</AssemblyVersion>
-    <FileVersion>0.1.5</FileVersion>
+    <AssemblyVersion>0.8.0</AssemblyVersion>
+    <FileVersion>0.8.0</FileVersion>
     <DebugType>embedded</DebugType>
     <ApplicationIcon>wwwroot\favicon.ico</ApplicationIcon>
     <PackageIcon>TownBulletin.png</PackageIcon>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="Resources\ModuleTemplate.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <_WebToolingArtifacts Remove="Properties\PublishProfiles\WindowsProfile.pubxml" />
@@ -44,13 +40,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Resources\ModuleTemplate.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="wwwroot\assets\TownBulletin.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+    <None Include="wwwroot\css\markdown.css" />
   </ItemGroup>
 
   <ItemGroup>

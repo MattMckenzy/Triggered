@@ -29,6 +29,8 @@
                     ModuleService.SupportedEvents.Select(keyValuePair => 
                         new KeyValuePair<string, string>(keyValuePair.Key, 
                             keyValuePair.Key.Split(".", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? string.Empty))))
+                PlaceholderText="Events..."
+                NoOptionsText="No events found..."
                 OnChange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentEventTest.Event), changeEventArgs.Value!))></FilterSelect>
         </div>
         <div class="mb-3">

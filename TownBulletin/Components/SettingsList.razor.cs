@@ -21,7 +21,7 @@ namespace TownBulletin.Components
         private TwitchService TwitchService { get; set; } = null!;
 
         [Inject]
-        private TwitchBotService TwitchBotService { get; set; } = null!;
+        private TwitchChatService TwitchChatService { get; set; } = null!;
 
         [CascadingParameter]
         public MainLayout MainLayout { get; set; } = null!;
@@ -47,10 +47,10 @@ namespace TownBulletin.Components
             "TwitchClientSecret",
             "TwitchAccessToken",
             "TwitchRefreshToken",
-            "TwitchBotClientId",
-            "TwitchBotClientSecret",
-            "TwitchBotAccessToken",
-            "TwitchBotRefreshToken",
+            "TwitchChatClientId",
+            "TwitchChatClientSecret",
+            "TwitchChatAccessToken",
+            "TwitchChatRefreshToken",
             "ObsPassword"
         };
 
@@ -70,21 +70,21 @@ namespace TownBulletin.Components
             "TwitchRefreshToken"
         };
 
-        private readonly IEnumerable<string> TwitchBotLoginSettings = new string[]
+        private readonly IEnumerable<string> TwitchChatLoginSettings = new string[]
         {
-            "TwitchBotUseSecondAccount",
-            "TwitchBotClientId",
-            "TwitchBotClientSecret",
-            "TwitchBotUserName",
-            "TwitchBotChannelName",
-            "TwitchBotAccessToken",
-            "TwitchBotRefreshToken"
+            "TwitchChatUseSecondAccount",
+            "TwitchChatClientId",
+            "TwitchChatClientSecret",
+            "TwitchChatUserName",
+            "TwitchChatChannelName",
+            "TwitchChatAccessToken",
+            "TwitchChatRefreshToken"
         };
 
-        private readonly IEnumerable<string> TwitchBotLoginResetSettings = new string[]
+        private readonly IEnumerable<string> TwitchChatLoginResetSettings = new string[]
         {
-            "TwitchBotAccessToken",
-            "TwitchBotRefreshToken"
+            "TwitchChatAccessToken",
+            "TwitchChatRefreshToken"
         };
 
         private readonly IEnumerable<string> TownBulletinSettings = new string[]
@@ -92,7 +92,10 @@ namespace TownBulletin.Components
             "Host",
             "WebhookHost",
             "Autostart",
+            "ModuleTemplate",
             "ExternalModulesPath",
+            "ExternalResourcesPath",
+            "MessagesLimit",
             "MessageLevels",
             "MessageNotificationsEnabled",
             "MessageNotificationVolume",
@@ -110,15 +113,15 @@ namespace TownBulletin.Components
             "TwitchDropSubscriptoins"
         };
 
-        private readonly IEnumerable<string> TwitchBotSettings = new string[]
+        private readonly IEnumerable<string> TwitchChatSettings = new string[]
         {
-            "TwitchBotUseSecondAccount",
-            "TwitchBotClientId",
-            "TwitchBotClientSecret",
-            "TwitchBotAccessToken",
-            "TwitchBotRefreshToken",
-            "TwitchBotUserName",
-            "TwitchBotChannelName"
+            "TwitchChatUseSecondAccount",
+            "TwitchChatClientId",
+            "TwitchChatClientSecret",
+            "TwitchChatAccessToken",
+            "TwitchChatRefreshToken",
+            "TwitchChatUserName",
+            "TwitchChatChannelName"
         };
 
         private readonly IEnumerable<string> ObsSettings = new string[]
@@ -252,8 +255,11 @@ namespace TownBulletin.Components
                 if (twitchServiceBase != null)
                     await twitchServiceBase.Logout();
 
-                if ((resetSettings?.Contains(CurrentSetting.Key, StringComparer.InvariantCultureIgnoreCase) ?? false) || CurrentSetting.Key.Equals("TwitchBotUseSecondAccount", StringComparison.InvariantCultureIgnoreCase))
+                if ((resetSettings?.Contains(CurrentSetting.Key, StringComparer.InvariantCultureIgnoreCase) ?? false) || CurrentSetting.Key.Equals("TwitchChatUseSecondAccount", StringComparison.InvariantCultureIgnoreCase))
                     await MainLayout.RefreshState();
+
+                if (CurrentSetting.Key.Equals("TwitchChatUseSecondAccount", StringComparison.InvariantCultureIgnoreCase))
+                    await TwitchChatService.Initialize();
 
                 CurrentSettingKeyLocked = true;
 
@@ -274,16 +280,16 @@ namespace TownBulletin.Components
                     ChoiceAction = async () => await saveSetting(TwitchLoginResetSettings, TwitchService)
                 });
             }
-            else if (TwitchBotLoginSettings.Contains(CurrentSetting.Key, StringComparer.InvariantCultureIgnoreCase) && TwitchBotService.IsLoggedIn)
+            else if (TwitchChatLoginSettings.Contains(CurrentSetting.Key, StringComparer.InvariantCultureIgnoreCase) && TwitchChatService.IsLoggedIn)
             {
                 await ModalPromptReference.ShowModalPrompt(new()
                 {
                     Title = "WARNING: Logging out!",
-                    Message = $"Changing the value for the setting \"{CurrentSetting.Key}\" will log you out of the TwitchBotService! Proceed?",
+                    Message = $"Changing the value for the setting \"{CurrentSetting.Key}\" will log you out of the TwitchChatService! Proceed?",
                     CancelChoice = "Cancel",
                     Choice = "Yes",
                     ChoiceColour = "danger",
-                    ChoiceAction = async () => await saveSetting(TwitchBotLoginResetSettings, TwitchBotService)
+                    ChoiceAction = async () => await saveSetting(TwitchChatLoginResetSettings, TwitchChatService)
                 });
             }
             else
@@ -347,12 +353,12 @@ namespace TownBulletin.Components
             {
                 { "TownBulletin", TownBulletinSettings },
                 { "Twitch Service", TwitchSettings },
-                { "TwitchBot Service", TwitchBotSettings },
+                { "TwitchChat Service", TwitchChatSettings },
                 { "OBS Service", ObsSettings },
                 { "Custom", Settings.Select(setting => setting.Key)
                                 .Except(TownBulletinSettings, StringComparer.InvariantCultureIgnoreCase)
                                 .Except(TwitchSettings, StringComparer.InvariantCultureIgnoreCase)
-                                .Except(TwitchBotSettings, StringComparer.InvariantCultureIgnoreCase)
+                                .Except(TwitchChatSettings, StringComparer.InvariantCultureIgnoreCase)
                                 .Except(ObsSettings, StringComparer.InvariantCultureIgnoreCase) }
             };
 

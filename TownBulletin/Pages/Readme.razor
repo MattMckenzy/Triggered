@@ -1,0 +1,20 @@
+﻿@page "/readme"
+@using TownBulletin.Extensions
+@using TownBulletin.Models
+@inject GitHubService GitHubService
+
+<PageTitle>Town Bulletin README</PageTitle>
+
+<div class="markdown-body">
+    @ReadmeMarkupString
+</div>
+
+@code {
+    private MarkupString ReadmeMarkupString;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ReadmeMarkupString = await GitHubService.GetReadmeMarkupAsync();
+        await base.OnInitializedAsync();
+    }
+}

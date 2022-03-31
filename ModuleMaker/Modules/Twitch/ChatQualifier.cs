@@ -7,11 +7,11 @@ namespace ModuleMaker.Modules.Twitch
 {
     public class ChatQualifier
     {
-        public static Task<bool> QualifyMessage(OnMessageReceivedArgs onMessageReceivedArgs, TwitchBotService twitchBotService)
+        public static Task<bool> QualifyMessage(OnMessageReceivedArgs onMessageReceivedArgs, TwitchChatService twitchChatService)
         {
             if(onMessageReceivedArgs.ChatMessage.Username.Equals("bigtanger", StringComparison.InvariantCultureIgnoreCase))
             {
-                twitchBotService.TwitchClient.SendMessage(twitchBotService.ChannelName, "Merci pour le beau message bigtanger!");
+                twitchChatService.TwitchClient.SendMessage(twitchChatService.ChannelName, "Merci pour le beau message bigtanger!");
             }
 
             return Task.FromResult(true);

@@ -7,9 +7,11 @@ namespace ModuleMaker.Modules.Twitch
 {
     public class FirstMessageHeffry
     {
-        public async static Task<bool> ShowFirstMessageHeffry(OnRitualNewChatterArgs eventArgs, QueueService queueService, ObsService obsService)
+        public async static Task<bool> ShowFirstMessageHeffry(OnRitualNewChatterArgs eventArgs, QueueService queueService, ObsService obsService, TwitchChatService twitchChatService)
         {
             await queueService.Add("ShowFirstMessageHeffry", async () => {
+
+                twitchChatService.TwitchClient.SendMessage("MattMckenzy", $"Welcome to MattMckenzy's Channel, {eventArgs.RitualNewChatter.DisplayName}! Please be courteous and treat everyone with respect. Feel free to interrupt me and ask me anything anytime!");
 
                 TextGDIPlusProperties properties = obsService.OBSWebsocket.GetTextGDIPlusProperties("FirstMessageText");
                 properties.Text = $"Welcome to the channel!\r\n{eventArgs.RitualNewChatter.DisplayName}";

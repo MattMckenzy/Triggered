@@ -7,11 +7,11 @@ namespace ModuleMaker.Modules.Twitch
 {
     public class AnnounceSpotify
     {
-        public static Task<bool> SpotifyAnnounce(SceneItemVisibilityEventArgs sceneItemVisibilityEventArgs, TwitchBotService twitchBotService)
+        public static Task<bool> SpotifyAnnounce(SceneItemVisibilityEventArgs sceneItemVisibilityEventArgs, TwitchChatService twitchChatService)
         {
             if (sceneItemVisibilityEventArgs.ItemName.Equals("Spotify", StringComparison.InvariantCultureIgnoreCase) && sceneItemVisibilityEventArgs.IsVisible)
             {
-                twitchBotService.TwitchClient.SendMessage(twitchBotService.ChannelName, "Have a look at the currently playing track from Spotify on the bottom left of the stream!");
+                twitchChatService.TwitchClient.SendMessage(twitchChatService.ChannelName, "Have a look at the currently playing track from Spotify on the bottom left of the stream!");
             }
 
             return Task.FromResult(true);

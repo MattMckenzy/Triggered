@@ -10,7 +10,30 @@ namespace TownBulletin.Extensions
             { "Host", "https://localhost" },
             { "WebhookHost", "https://{external_ip}" },
             { "Autostart", "true" },
+            { "ModuleTemplate", 
+              @"using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using OBSWebsocketDotNet;
+using TownBulletin.Models;
+using TownBulletin.Services;
+using TwitchLib.Client.Events;
+using TwitchLib.PubSub.Events;
+
+namespace TownBulletin.Modules./*EventName*/
+{
+    public class /*ModuleName*/
+    {
+        public static Task<bool> /*EntryMethod*/(/*EventArgs*/ eventArgs)
+        {
+            return Task.FromResult(true);
+        }
+    }
+}" 
+            },
             { "ExternalModulesPath", "Modules" },
+            { "ExternalResourcesPath", "Resources" },
+            { "MessagesLimit", "1000" },
             { "MessageLevels", "Information, Warning, Error" },
             { "MessageNotificationsEnabled", "False" },
             { "MessageNotificationVolume", "0.25" },
@@ -24,13 +47,13 @@ namespace TownBulletin.Extensions
             { "TwitchRefreshToken", "" },
             { "TwitchExtensionSubscriptoins", "" },
             { "TwitchDropSubscriptoins", "" },
-            { "TwitchBotUseSecondAccount", "False" },
-            { "TwitchBotClientId", "" },
-            { "TwitchBotClientSecret", "" },
-            { "TwitchBotUserName", "" },
-            { "TwitchBotChannelName", "" },
-            { "TwitchBotAccessToken", "" },
-            { "TwitchBotRefreshToken", "" }
+            { "TwitchChatUseSecondAccount", "False" },
+            { "TwitchChatClientId", "" },
+            { "TwitchChatClientSecret", "" },
+            { "TwitchChatUserName", "" },
+            { "TwitchChatChannelName", "" },
+            { "TwitchChatAccessToken", "" },
+            { "TwitchChatRefreshToken", "" }
         };
 
         public static string GetSetting(this DbSet<Setting> dbSet, string name)

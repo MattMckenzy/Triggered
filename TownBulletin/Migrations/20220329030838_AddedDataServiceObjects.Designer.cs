@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TownBulletin.Models;
 
@@ -10,9 +11,10 @@ using TownBulletin.Models;
 namespace TownBulletin.Migrations
 {
     [DbContext(typeof(TownBulletinDbContext))]
-    partial class TownBulletinDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220329030838_AddedDataServiceObjects")]
+    partial class AddedDataServiceObjects
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.3");

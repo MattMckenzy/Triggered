@@ -292,10 +292,12 @@ namespace TownBulletin.Services
                 await _messagingService.AddMessage($"Failed to register webhook \"{type}\" at \"{webhook}\" because \"{createEventSubSubscriptionResponse.Subscriptions.FirstOrDefault()!.Status}\".", MessageCategory.Service, LogLevel.Error);
 
             GetEventSubSubscriptionsResponse? eventSubscriptions  = null;
-            DateTime verificationTime = DateTime.Now + TimeSpan.FromSeconds(18);
+            DateTime verificationTime = DateTime.Now + TimeSpan.FromMinutes(10);
+            TimeSpan delayTime = TimeSpan.FromSeconds(1);
             while (verificationTime > DateTime.Now)
             {
-                await Task.Delay(3000);
+                await Task.Delay(delayTime);
+                delayTime = delayTime.Multiply(1.5);
 
                 eventSubscriptions =
                     await CallTwitchAPI(async () => await TwitchAPI.Helix.EventSub.GetEventSubSubscriptionsAsync(type: type, accessToken: serverAccessToken));
@@ -305,11 +307,19 @@ namespace TownBulletin.Services
                     await _messagingService.AddMessage($"Twitch succesfully subscribed to webhook for topic: \"{type}\"", MessageCategory.Service, LogLevel.Debug);
                     return true;
                 }
-                else
+                else if (eventSubscriptions?.Subscriptions?.FirstOrDefault()?.Status == "webhook_callback_verification_pending")
+                {
+                    await _messagingService.AddMessage($"Twitch still waiting for verification on topic: \"{type}\"", MessageCategory.Service, LogLevel.Debug);
                     continue;
+                }
+                else
+                {
+                    await _messagingService.AddMessage($"Twitch failed to verify subscription to webhook for topic: \"{type}\" with status: \"{eventSubscriptions?.Subscriptions?.FirstOrDefault()?.Status}\"", MessageCategory.Service, LogLevel.Error);
+                    return false;
+                }
             }
 
-            await _messagingService.AddMessage($"Twitch failed to verify subscription to webhook for topic: \"{type}\" with status: \"{eventSubscriptions?.Subscriptions?.FirstOrDefault()?.Status}\"", MessageCategory.Service, LogLevel.Error);
+            await _messagingService.AddMessage($"Twitch webhook verification for topic: \"{type}\" timed out.", MessageCategory.Service, LogLevel.Error);
             return false;
         }
     }

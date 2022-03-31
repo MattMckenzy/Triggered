@@ -8,14 +8,27 @@
 
             @if(Categories != null)
             {
+                string? lastSuperCategory = null;
                 @foreach(KeyValuePair<string, IEnumerable<string>> category in Categories)
                 {
+                    string currentSuperCategory = category.Key.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()!;
+                    string currentCategory = category.Key.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).LastOrDefault()!;
+
+                    if (!currentSuperCategory.Equals(lastSuperCategory) && !currentSuperCategory.Equals(currentCategory))
+                    {
+                        lastSuperCategory = currentSuperCategory;
+                        <li class="mb-1">
+                            <u class="text-white text-start pe-none opacity-75">
+                                @currentSuperCategory
+                            </u>
+                        </li>
+                    }
 
                     <li class="mb-1">
-                        <button class="btn btn-event d-inline-flex align-items-center rounded collapsed text-white text-start" data-bs-toggle="collapse" data-bs-target="#collapse@(category.Key.GetHashCode())" aria-expanded="false">
-                            <i class="bi bi-chevron-right"></i> @category.Key
+                        <button class="btn btn-event d-inline-flex align-items-center rounded collapsed text-white text-start" data-bs-toggle="collapse" data-bs-target="#collapse@(currentCategory.GetHashCode())" aria-expanded="false">
+                            <i class="bi bi-chevron-right"></i> @currentCategory
                         </button>
-                        <div class="collapse" id="collapse@(category.Key.GetHashCode())">   
+                        <div class="collapse" id="collapse@(currentCategory.GetHashCode())">   
                             <ul class="list-unstyled fw-normal pb-1 small">   
                                 
                             @foreach (string itemKey in category.Value)
@@ -66,7 +79,7 @@
 
     [Parameter]
     public Dictionary<string, IEnumerable<string>>? Categories { get; set; } = null;
-    
+            
     [Parameter]
     public string? CurrentItem { get; set; } = null;
 
