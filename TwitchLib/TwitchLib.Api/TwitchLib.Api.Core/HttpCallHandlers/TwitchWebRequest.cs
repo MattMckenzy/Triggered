@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using TwitchLib.Api.Core.Enums;
 using TwitchLib.Api.Core.Exceptions;
 using TwitchLib.Api.Core.Interfaces;
@@ -13,28 +14,31 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
     public class TwitchWebRequest : IHttpCallHandler
     {
         private readonly ILogger<TwitchWebRequest> _logger;
+        private readonly Func<Task<string>> _tokenRefreshDelegate;
+        private readonly Func<Exception, Task> _webExceptionHandler;
 
         /// <summary>
         /// Creates an Instance of the TwitchHttpClient Class.
         /// </summary>
         /// <param name="logger">Instance Of Logger, otherwise no logging is used,  </param>
-        public TwitchWebRequest(ILogger<TwitchWebRequest> logger = null)
+        public TwitchWebRequest(ILogger<TwitchWebRequest> logger = null, Func<Task<string>> tokenRefreshDelegate = null, Func<Exception, Task> webExceptionHandler = null)
         {
             _logger = logger;
+            _tokenRefreshDelegate = tokenRefreshDelegate;
+            _webExceptionHandler = webExceptionHandler;
         }
 
-
-        public void PutBytes(string url, byte[] payload)
+        public async Task PutBytes(string url, byte[] payload)
         {
             try
             {
                 using (var client = new WebClient())
                     client.UploadData(new Uri(url), "PUT", payload);
             }
-            catch (WebException ex) { HandleWebException(ex); }
+            catch (WebException ex) { await HandleWebException(ex); }
         }
 
-        public KeyValuePair<int, string> GeneralRequest(string url, string method, string payload = null, ApiVersion api = ApiVersion.V5, string clientId = null, string accessToken = null)
+        public async Task<KeyValuePair<int, string>> GeneralRequest(string url, string method, string payload = null, ApiVersion api = ApiVersion.V5, string clientId = null, string accessToken = null, bool refreshedToken = false)
         {
             var request = WebRequest.CreateHttp(url);
             if (string.IsNullOrEmpty(clientId) && string.IsNullOrEmpty(accessToken))
@@ -79,7 +83,23 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
                     return new KeyValuePair<int, string>((int)response.StatusCode, data);
                 }
             }
-            catch (WebException ex) { HandleWebException(ex); }
+            catch (WebException ex) 
+            {
+                try
+                {
+                    await HandleWebException(ex);
+                }
+                catch (Exception exception) when (exception is UnauthorizedException)
+                {
+                    if (refreshedToken == false && _tokenRefreshDelegate != null && !url.Contains("oauth2/validate"))
+                    {
+                        string refreshedAccessToken = await _tokenRefreshDelegate();
+                        return await GeneralRequest(url, method, payload, api, clientId, refreshedAccessToken, true);
+                    }
+                    else
+                        throw exception;
+                }
+            }
 
             return new KeyValuePair<int, string>(0, null);
         }
@@ -103,33 +123,47 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
             return (int)response.StatusCode;
         }
 
-        private void HandleWebException(WebException e)
+        private async Task HandleWebException(WebException e)
         {
             if (!(e.Response is HttpWebResponse errorResp))
                 throw e;
 
-            string content = string.Empty;
-            Encoding encoding = Encoding.GetEncoding(errorResp.CharacterSet);
-            using (Stream responseStream = errorResp.GetResponseStream())
-            using (StreamReader reader = new StreamReader(responseStream, encoding))
-                content = reader.ReadToEnd();
-
-            switch (errorResp.StatusCode)
+            try
             {
-                case HttpStatusCode.BadRequest:
-                    throw new BadRequestException($"The request was returned as bad{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
-                case HttpStatusCode.Unauthorized:
-                    throw new UnauthorizedException($"You are unauthorized for this request{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
-                case HttpStatusCode.NotFound:
-                    throw new BadResourceException($"The resource was not found{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
-                case (HttpStatusCode)429:
-                    var resetTime = errorResp.Headers.Get("Ratelimit-Reset");
-                    throw new TooManyRequestsException("You have reached your rate limit. Too many requests were made", resetTime);
-                case (HttpStatusCode)422:
-                    throw new NotPartneredException("The resource you requested is only available to channels that have been partnered by Twitch.");
-                default:
-                    throw e;
+                string content = string.Empty;
+                if (!string.IsNullOrEmpty(errorResp.CharacterSet))
+                {
+                    Encoding encoding = Encoding.GetEncoding(errorResp.CharacterSet);
+                    using (Stream responseStream = errorResp.GetResponseStream())
+                    using (StreamReader reader = new StreamReader(responseStream, encoding))
+                        content = reader.ReadToEnd();
+                }
+
+                switch (errorResp.StatusCode)
+                {
+                    case HttpStatusCode.BadRequest:
+                        throw new BadRequestException($"The request was returned as bad{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
+                    case HttpStatusCode.Unauthorized:
+                        throw new UnauthorizedException($"You are unauthorized for this request{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
+                    case HttpStatusCode.NotFound:
+                        throw new BadResourceException($"The resource was not found{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
+                    case (HttpStatusCode)429:
+                        var resetTime = errorResp.Headers.Get("Ratelimit-Reset");
+                        throw new TooManyRequestsException("You have reached your rate limit. Too many requests were made", resetTime);
+                    case (HttpStatusCode)422:
+                        throw new NotPartneredException("The resource you requested is only available to channels that have been partnered by Twitch.");
+                    default:
+                        throw e;
+                }
             }
+            catch (WebException webException)
+            {
+                if (_webExceptionHandler != null)
+                    await _webExceptionHandler(webException);
+                else
+                    throw webException;
+            }
+
         }
 
     }

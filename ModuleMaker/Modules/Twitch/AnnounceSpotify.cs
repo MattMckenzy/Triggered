@@ -1,7 +1,7 @@
 ﻿using OBSWebsocketDotNet;
 using System;
 using System.Threading.Tasks;
-using TownBulletin.Services;
+using Triggered.Services;
 
 namespace ModuleMaker.Modules.Twitch
 {

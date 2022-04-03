@@ -22,11 +22,11 @@ namespace TwitchLib.Api.Auth
         ///     <para>Throws a BadRequest Exception if the request fails due to a bad refresh token</para>
         /// </summary>
         /// <returns>A RefreshResponse object that holds your new auth and refresh token and the list of scopes for that token</returns>
-        public Task<RefreshResponse> RefreshAuthTokenAsync(string refreshToken = null, string clientSecret = null, string clientId = null)
+        public async Task<RefreshResponse> RefreshAuthTokenAsync(string refreshToken = null, string clientSecret = null, string clientId = null)
         {
-            var internalRefreshToken = refreshToken ?? Settings.RefreshToken;
-            var internalclientSecret = clientSecret ?? Settings.ClientSecret;
-            var internalClientId = clientId ?? Settings.ClientId;
+            var internalRefreshToken = refreshToken ?? await Settings.GetRefreshTokenAsync();
+            var internalclientSecret = clientSecret ?? await Settings.GetClientSecretAsync();
+            var internalClientId = clientId ?? await Settings.GetClientIdAsync();
 
             if (string.IsNullOrWhiteSpace(internalRefreshToken))
                 throw new BadParameterException("The refresh token is not valid. It is not allowed to be null, empty or filled with whitespaces.");
@@ -45,7 +45,7 @@ namespace TwitchLib.Api.Auth
                     new KeyValuePair<string, string>("client_secret", internalclientSecret)
                 };
 
-            return TwitchPostGenericAsync<RefreshResponse>("/oauth2/token", ApiVersion.Void, null, getParams, customBase: "https://id.twitch.tv");
+            return await TwitchPostGenericAsync<RefreshResponse>("/oauth2/token", ApiVersion.Void, null, getParams, customBase: "https://id.twitch.tv");
         }
 
         /// <summary>
@@ -58,10 +58,10 @@ namespace TwitchLib.Api.Auth
         /// <param name="clientId">Your client ID.</param>
         /// <returns>A URL encoded string that can be used to generate a user authorization code.</returns>
         /// <exception cref="BadParameterException">Thrown when any of the required parameters are not valid.</exception>
-        public string GetAuthorizationCodeUrl(string redirectUri, IEnumerable<AuthScopes> scopes = null, bool forceVerify = false, string state = null, string clientId = null)
+        public async Task<string> GetAuthorizationCodeUrl(string redirectUri, IEnumerable<AuthScopes> scopes = null, bool forceVerify = false, string state = null, string clientId = null)
         {
             var internalScopes = scopes ?? Settings.Scopes;
-            var internalClientId = clientId ?? Settings.ClientId;
+            var internalClientId = clientId ?? await Settings.GetClientIdAsync();
 
             string scopesStr = null;
             foreach (var scope in internalScopes)
@@ -92,10 +92,10 @@ namespace TwitchLib.Api.Auth
         /// <param name="clientId">The client ID of your app or extension.</param>
         /// <param name="clientSecret">Required for API access.</param>
         /// <returns>A RefreshResponse object that holds your new auth and refresh token and the list of scopes for that token</returns>
-        public Task<AuthCodeResponse> GetAccessTokenFromCodeAsync(string code, string redirectUri, string clientId = null, string clientSecret = null)
+        public async Task<AuthCodeResponse> GetAccessTokenFromCodeAsync(string code, string redirectUri, string clientId = null, string clientSecret = null)
         {
-            var internalClientId = clientId ?? Settings.ClientId;
-            var internalclientSecret = clientSecret ?? Settings.ClientSecret;
+            var internalClientId = clientId ?? await Settings.GetClientIdAsync();
+            var internalclientSecret = clientSecret ?? await Settings.GetClientSecretAsync();
 
             if (string.IsNullOrWhiteSpace(code))  
                 throw new BadParameterException("The code is not valid. It is not allowed to be null, empty or filled with whitespaces.");
@@ -118,7 +118,7 @@ namespace TwitchLib.Api.Auth
                 new KeyValuePair<string, string>("redirect_uri", redirectUri)
             };
 
-            return TwitchPostGenericAsync<AuthCodeResponse>("/oauth2/token", ApiVersion.Void, null, getParams, customBase: "https://id.twitch.tv");
+            return await TwitchPostGenericAsync<AuthCodeResponse>("/oauth2/token", ApiVersion.Void, null, getParams, customBase: "https://id.twitch.tv");
         }
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace TwitchLib.Api.Auth
         /// <returns>ValidateAccessTokenResponse</returns>
         public async Task<ValidateAccessTokenResponse> ValidateAccessTokenAsync(string accessToken = null)
         {
-            var internalAccessToken = accessToken ?? Settings.AccessToken;
+            var internalAccessToken = accessToken ?? await Settings.GetAccessTokenAsync();
 
             try
             {
@@ -148,8 +148,8 @@ namespace TwitchLib.Api.Auth
         /// <returns>ValidateAccessTokenResponse</returns>
         public async Task<bool> RevokeAccessTokenAsync(string clientId = null, string accessToken = null)
         {
-            var internalClientId = clientId ?? Settings.ClientId;
-            var internalAccessToken = accessToken ?? Settings.AccessToken;
+            var internalClientId = clientId ?? await Settings.GetClientIdAsync();
+            var internalAccessToken = accessToken ?? await Settings.GetAccessTokenAsync();
 
             try
             {
@@ -160,9 +160,6 @@ namespace TwitchLib.Api.Auth
                 };
 
                 await TwitchPostAsync("/oauth2/revoke", ApiVersion.Void, null, getParams, internalAccessToken, internalClientId, "https://id.twitch.tv");
-
-                Settings.AccessToken = null;
-                Settings.RefreshToken = null;
 
                 return true;
             }

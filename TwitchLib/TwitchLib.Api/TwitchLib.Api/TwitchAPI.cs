@@ -37,39 +37,6 @@ namespace TwitchLib.Api
             V5 = new V5.V5(loggerFactory, rateLimiter, Settings, http);
             ThirdParty = new ThirdParty.ThirdParty(Settings, rateLimiter, http);
             Undocumented = new Undocumented(Settings, rateLimiter, http);
-
-            Settings.PropertyChanged += SettingsPropertyChanged;
-        }
-
-        private void SettingsPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
-            {
-                case nameof(IApiSettings.AccessToken):
-                    V5.Settings.AccessToken = Settings.AccessToken;
-                    Helix.Settings.AccessToken = Settings.AccessToken;
-                    break;
-                case nameof(IApiSettings.ClientSecret):
-                    V5.Settings.ClientSecret = Settings.ClientSecret;
-                    Helix.Settings.ClientSecret = Settings.ClientSecret;
-                    break;
-                case nameof(IApiSettings.ClientId):
-                    V5.Settings.ClientId = Settings.ClientId;
-                    Helix.Settings.ClientId = Settings.ClientId;
-                    break;
-                case nameof(IApiSettings.SkipDynamicScopeValidation):
-                    V5.Settings.SkipDynamicScopeValidation = Settings.SkipDynamicScopeValidation;
-                    Helix.Settings.SkipDynamicScopeValidation = Settings.SkipDynamicScopeValidation;
-                    break;
-                case nameof(IApiSettings.SkipAutoServerTokenGeneration):
-                    V5.Settings.SkipAutoServerTokenGeneration = Settings.SkipAutoServerTokenGeneration;
-                    Helix.Settings.SkipAutoServerTokenGeneration = Settings.SkipAutoServerTokenGeneration;
-                    break;
-                case nameof(IApiSettings.Scopes):
-                    V5.Settings.Scopes = Settings.Scopes;
-                    Helix.Settings.Scopes = Settings.Scopes;
-                    break;
-            }
         }
     }
 }

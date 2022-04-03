@@ -1,6 +1,6 @@
 ﻿using OBSWebsocketDotNet.Types;
 using System.Threading.Tasks;
-using TownBulletin.Services;
+using Triggered.Services;
 using TwitchLib.Client.Events;
 
 namespace ModuleMaker.Modules.Twitch

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
 using TwitchLib.Api.Core.Enums;
 using TwitchLib.Api.Core.Exceptions;
 using TwitchLib.Api.Core.Interfaces;
@@ -16,27 +17,31 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
     {
         private readonly ILogger<TwitchHttpClient> _logger;
         private readonly HttpClient _http;
+        private readonly Func<Task<string>> _tokenRefreshDelegate;
+        private readonly Func<Exception, Task> _webExceptionHandler;
 
         /// <summary>
         /// Creates an Instance of the TwitchHttpClient Class.
         /// </summary>
         /// <param name="logger">Instance Of Logger, otherwise no logging is used,  </param>
-        public TwitchHttpClient(ILogger<TwitchHttpClient> logger = null)
+        public TwitchHttpClient(ILogger<TwitchHttpClient> logger = null, Func<Task<string>> tokenRefreshDelegate = null, Func<Exception, Task> webExceptionHandler = null)
         {
             _logger = logger;
             _http = new HttpClient(new TwitchHttpClientHandler(_logger));
+            _tokenRefreshDelegate = tokenRefreshDelegate;
+            _webExceptionHandler = webExceptionHandler;
         }
 
 
-        public void PutBytes(string url, byte[] payload)
+        public async Task PutBytes(string url, byte[] payload)
         {
             var response = _http.PutAsync(new Uri(url), new ByteArrayContent(payload)).GetAwaiter().GetResult();
 
             if (!response.IsSuccessStatusCode)
-                HandleWebException(response);
+                await HandleWebException(response);
         }
 
-        public KeyValuePair<int, string> GeneralRequest(string url, string method, string payload = null, ApiVersion api = ApiVersion.V5, string clientId = null, string accessToken = null)
+        public async Task<KeyValuePair<int, string>> GeneralRequest(string url, string method, string payload = null, ApiVersion api = ApiVersion.V5, string clientId = null, string accessToken = null, bool refreshedToken = false)
         {
             var request = new HttpRequestMessage
             {
@@ -70,15 +75,28 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
             if (payload != null)
                 request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
 
-
-            var response = _http.SendAsync(request).GetAwaiter().GetResult();
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var respStr =  response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                return new KeyValuePair<int, string>((int)response.StatusCode, respStr);
+                var response = _http.SendAsync(request).GetAwaiter().GetResult();
+                if (response.IsSuccessStatusCode)
+                {
+                    var respStr = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return new KeyValuePair<int, string>((int)response.StatusCode, respStr);
+                }
+
+                await HandleWebException(response);
+            }
+            catch (UnauthorizedException exception)
+            {
+                if (refreshedToken == false && _tokenRefreshDelegate != null)
+                {
+                    string refreshedAccessToken = await _tokenRefreshDelegate();
+                    return await GeneralRequest(url, method, payload, api, clientId, refreshedAccessToken, true);
+                }
+                else
+                    throw exception;
             }
 
-            HandleWebException(response);
             return new KeyValuePair<int, string>(0, null);
         }
 
@@ -104,32 +122,42 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
             return (int)response.StatusCode;
         }
 
-        private void HandleWebException(HttpResponseMessage errorResp)
+        private async Task HandleWebException(HttpResponseMessage errorResp)
         {
-            string content = errorResp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            switch (errorResp.StatusCode)
+            try
+            {           
+                string content = errorResp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                switch (errorResp.StatusCode)
+                {
+                    case HttpStatusCode.BadRequest:
+                        throw new BadRequestException($"The request was returned as bad{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
+                    case HttpStatusCode.Unauthorized:
+                        throw new UnauthorizedException($"You are unauthorized for this request{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
+                    case HttpStatusCode.NotFound:
+                        throw new BadResourceException($"The resource was not found{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
+                    case (HttpStatusCode)422:
+                        throw new NotPartneredException("The resource you requested is only available to channels that have been partnered by Twitch.");
+                    case (HttpStatusCode)429:
+                        errorResp.Headers.TryGetValues("Ratelimit-Reset", out var resetTime);
+                        throw new TooManyRequestsException("You have reached your rate limit. Too many requests were made", resetTime.FirstOrDefault());
+                    case HttpStatusCode.BadGateway:
+                        throw new BadGatewayException("The API answered with a 502 Bad Gateway. Please retry your request");
+                    case HttpStatusCode.GatewayTimeout:
+                        throw new GatewayTimeoutException("The API answered with a 504 Gateway Timeout. Please retry your request");
+                    case HttpStatusCode.InternalServerError:
+                        throw new InternalServerErrorException("The API answered with a 500 Internal Server Error. Please retry your request");
+                    case HttpStatusCode.Forbidden:
+                        throw new UnauthorizedException("The token provided in the request did not match the associated user. Make sure the token you're using is from the resource owner (streamer? viewer?)");
+                    default:
+                        throw new HttpRequestException("Something went wrong during the request! Please try again later");
+                }
+            }
+            catch (WebException webException)
             {
-                case HttpStatusCode.BadRequest:
-                    throw new BadRequestException($"The request was returned as bad{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
-                case HttpStatusCode.Unauthorized:
-                    throw new UnauthorizedException($"You are unauthorized for this request{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
-                case HttpStatusCode.NotFound:
-                    throw new BadResourceException($"The resource was not found{(string.IsNullOrWhiteSpace(content) ? "." : $" with the following message: {content}")}");
-                case (HttpStatusCode)422:
-                    throw new NotPartneredException("The resource you requested is only available to channels that have been partnered by Twitch.");
-                case (HttpStatusCode)429:
-                    errorResp.Headers.TryGetValues("Ratelimit-Reset", out var resetTime);
-                    throw new TooManyRequestsException("You have reached your rate limit. Too many requests were made", resetTime.FirstOrDefault());
-                case HttpStatusCode.BadGateway:
-                    throw new BadGatewayException("The API answered with a 502 Bad Gateway. Please retry your request");
-                case HttpStatusCode.GatewayTimeout:
-                    throw new GatewayTimeoutException("The API answered with a 504 Gateway Timeout. Please retry your request");
-                case HttpStatusCode.InternalServerError:
-                    throw new InternalServerErrorException("The API answered with a 500 Internal Server Error. Please retry your request");
-                case HttpStatusCode.Forbidden:
-                    throw new UnauthorizedException("The token provided in the request did not match the associated user. Make sure the token you're using is from the resource owner (streamer? viewer?)");
-                default:
-                    throw new HttpRequestException("Something went wrong during the request! Please try again later");
+                if (_webExceptionHandler != null)
+                    await _webExceptionHandler(webException);
+                else
+                    throw webException;
             }
         }
 

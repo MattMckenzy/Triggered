@@ -8,8 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.Commands\Discord.Net.Commands.csproj" />
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.Core\Discord.Net.Core.csproj" />
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.Interactions\Discord.Net.Interactions.csproj" />
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.Rest\Discord.Net.Rest.csproj" />
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.Webhook\Discord.Net.Webhook.csproj" />
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.WebSocket\Discord.Net.WebSocket.csproj" />
     <ProjectReference Include="..\obs-websocket-dotnet\obs-websocket-dotnet\obs-websocket-dotnet.csproj" />
-    <ProjectReference Include="..\TownBulletin\TownBulletin.csproj" />
+    <ProjectReference Include="..\Triggered\Triggered.csproj" />
     <ProjectReference Include="..\TwitchLib.Communication\src\TwitchLib.Communication\TwitchLib.Communication.csproj" />
     <ProjectReference Include="..\TwitchLib.EventSub.Webhooks\TwitchLib.EventSub.Webhooks\TwitchLib.EventSub.Webhooks.csproj" />
     <ProjectReference Include="..\TwitchLib\TwitchLib.Api\TwitchLib.Api.Core.Enums\TwitchLib.Api.Core.Enums.csproj" />

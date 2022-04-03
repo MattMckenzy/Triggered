@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>f84e9c04-ad72-4cf3-a90d-3e7cf02caefb</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>.</DockerfileContext>
+    <AssemblyVersion>0.8.0</AssemblyVersion>
+    <FileVersion>0.8.0</FileVersion>
+    <DebugType>embedded</DebugType>
+    <ApplicationIcon>Logo.ico</ApplicationIcon>
+    <PackageIcon></PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <_WebToolingArtifacts Remove="Properties\PublishProfiles\WindowsProfile.pubxml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Logo.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Eltons.ReflectionKit" Version="1.2.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="6.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.15.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.1" />
+    <PackageReference Include="System.Collections" Version="4.3.0" />
+    <PackageReference Include="WebSocketSharp-netstandard" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\js\ace\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\css\markdown.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.Commands\Discord.Net.Commands.csproj" />
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.Core\Discord.Net.Core.csproj" />
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.Interactions\Discord.Net.Interactions.csproj" />
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.Rest\Discord.Net.Rest.csproj" />
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.Webhook\Discord.Net.Webhook.csproj" />
+    <ProjectReference Include="..\Discord.Net\src\Discord.Net.WebSocket\Discord.Net.WebSocket.csproj" />
+    <ProjectReference Include="..\obs-websocket-dotnet\obs-websocket-dotnet\obs-websocket-dotnet.csproj" />
+    <ProjectReference Include="..\TwitchLib.EventSub.Webhooks\TwitchLib.EventSub.Webhooks\TwitchLib.EventSub.Webhooks.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Api\TwitchLib.Api\TwitchLib.Api.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.Client\TwitchLib.Client\TwitchLib.Client.csproj" />
+    <ProjectReference Include="..\TwitchLib\TwitchLib.PubSub\TwitchLib.PubSub\TwitchLib.PubSub.csproj" />
+  </ItemGroup>
+
+</Project>

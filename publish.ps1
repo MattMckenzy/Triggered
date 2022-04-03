@@ -1,17 +1,17 @@
-dotnet build .\TownBulletin\TownBulletin.csproj -c Release /p:DeployOnBuild=true /p:PublishProfile=FolderProfile
-dotnet publish .\TownBulletin.Launcher\TownBulletin.Launcher.csproj /p:PublishProfile=FolderProfile
+dotnet build .\Triggered\Triggered.csproj -c Release /p:DeployOnBuild=true /p:PublishProfile=FolderProfile
+dotnet publish .\Triggered.Launcher\Triggered.Launcher.csproj /p:PublishProfile=FolderProfile
 
-cp ModuleMaker\Modules Releases\win-x64\TownBulletin\Modules
+cp ModuleMaker\Modules Releases\win-x64\Triggered\Modules
 
-$version = (Get-Item Releases\win-x64\TownBulletin\TownBulletin.exe).VersionInfo.FileVersion
+$version = (Get-Item Releases\win-x64\Triggered\Triggered.exe).VersionInfo.FileVersion
 if (Test-Path "Releases\win-x64\${version}.zip") {
     del "Releases\win-x64\${version}.zip"
 }
 
-Compress-Archive -Path Releases\win-x64\TownBulletin* -CompressionLevel Optimal -DestinationPath "Releases\win-x64\${version}.zip"
+Compress-Archive -Path Releases\win-x64\Triggered* -CompressionLevel Optimal -DestinationPath "Releases\win-x64\${version}.zip"
 Set-Content Releases\win-x64\latest ${version}
 
-del Releases\win-x64\TownBulletin* -Recurse
+del Releases\win-x64\Triggered* -Recurse
 
 git tag -a v${version} -m "Release v${version}"
 git add .

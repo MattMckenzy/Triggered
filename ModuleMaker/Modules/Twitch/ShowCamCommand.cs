@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using System;
 using TwitchLib.Client.Events;
-using TownBulletin.Services;
+using Triggered.Services;
 
 namespace ModuleMaker.Modules.Twitch
 {

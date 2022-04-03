@@ -1,111 +1,72 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using TwitchLib.Api.Core.Enums;
 using TwitchLib.Api.Core.Interfaces;
 
 namespace TwitchLib.Api.Core
 {
-    public class ApiSettings : IApiSettings, INotifyPropertyChanged
+    public class ApiSettings : IApiSettings
     {
-        private string _clientId;
-        private string _secret;
-        private string _accessToken;
-        private string _refreshToken;
-        private bool _skipDynamicScopeValidation;
-        private bool _skipAutoServerTokenGeneration;
-        private List<AuthScopes> _scopes;
-        public string ClientId
+        public ApiSettings(Func<Task<string>> clientIdProducer = null,
+                           Func<Task<string>> clientSecretProducer = null,
+                           Func<Task<string>> accessTokenProducer = null,
+                           Func<Task<string>> refreshTokenProducer = null,
+                           bool skipDynamicScopeValidation = false,
+                           bool skipAutoServerTokenGeneration = false,
+                           List<AuthScopes> scopes = null)
         {
-            get => _clientId;
-            set
-            {
-                if (value != _clientId)
-                {
-                    _clientId = value;
-                    NotifyPropertyChanged();
-                }
-            }
-        }
-        public string ClientSecret
-        {
-            get => _secret;
-            set
-            {
-                if (value != _secret)
-                {
-                    _secret = value;
-                    NotifyPropertyChanged();
-                }
-            }
-        }
-        public string AccessToken
-        {
-            get => _accessToken;
-            set
-            {
-                if (value != _accessToken)
-                {
-                    _accessToken = value;
-                    NotifyPropertyChanged();
-                }
-            }
-        }
-        public string RefreshToken
-        {
-            get => _refreshToken;
-            set
-            {
-                if (value != _refreshToken)
-                {
-                    _refreshToken = value;
-                    NotifyPropertyChanged();
-                }
-            }
+            ClientIdProducer = clientIdProducer;
+            ClientSecretProducer = clientSecretProducer;
+            AccessTokenProducer = accessTokenProducer;
+            RefreshTokenProducer = refreshTokenProducer;
+            SkipDynamicScopeValidation = skipDynamicScopeValidation;
+            SkipAutoServerTokenGeneration = skipAutoServerTokenGeneration;
+            Scopes = scopes;
         }
 
-        public bool SkipDynamicScopeValidation
+        private Func<Task<string>> ClientIdProducer;
+        private Func<Task<string>> ClientSecretProducer;
+        private Func<Task<string>> AccessTokenProducer;
+        private Func<Task<string>> RefreshTokenProducer;
+
+        public async Task<string> GetClientIdAsync()
         {
-            get => _skipDynamicScopeValidation;
-            set
-            {
-                if (value != _skipDynamicScopeValidation)
-                {
-                    _skipDynamicScopeValidation = value;
-                    NotifyPropertyChanged();
-                }
-            }
-        }
-        public bool SkipAutoServerTokenGeneration
-        {
-            get => _skipAutoServerTokenGeneration;
-            set
-            {
-                if (value != _skipAutoServerTokenGeneration)
-                {
-                    _skipAutoServerTokenGeneration = value;
-                    NotifyPropertyChanged();
-                }
-            }
-        }
-        public List<AuthScopes> Scopes
-        {
-            get => _scopes;
-            set
-            {
-                if (value != _scopes)
-                {
-                    _scopes = value;
-                    NotifyPropertyChanged();
-                }
-            }
+            if (ClientIdProducer == null)
+                return null;
+            else
+                return await ClientIdProducer();
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
+        public async Task<string> GetClientSecretAsync()
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            if (ClientSecretProducer == null)
+                return null;
+            else
+                return await ClientSecretProducer();
         }
+
+        public async Task<string> GetAccessTokenAsync()
+        {
+            if (AccessTokenProducer == null)
+                return null;
+            else
+                return await AccessTokenProducer();
+        }
+
+        public async Task<string> GetRefreshTokenAsync()
+        {
+            if (RefreshTokenProducer == null)
+                return null;
+            else
+                return await RefreshTokenProducer();
+        }
+
+
+        public bool SkipDynamicScopeValidation { get; set; }
+        public bool SkipAutoServerTokenGeneration { get; set; }
+        public List<AuthScopes> Scopes { get; set; }
     }
 }

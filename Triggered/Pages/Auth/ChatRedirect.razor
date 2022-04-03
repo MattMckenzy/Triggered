@@ -1,0 +1,68 @@
+﻿@page "/auth/chatredirect"
+@using Microsoft.Extensions.Caching.Memory
+@using Triggered.Extensions
+@using Triggered.Models
+@using Triggered.Services
+
+<PageTitle>Authorization Code Redirect</PageTitle>
+
+    @if (string.IsNullOrWhiteSpace(Error) && string.IsNullOrWhiteSpace(ErrorDescription))
+    {
+        <h5 class="text-white">Succesfully logged in!</h5>
+        <p class="text-white">Redirecting to control panel in 3 seconds...</p>
+    }
+    else
+    {            
+        <h5 class="text-white">Login error!</h5>
+        <p class="text-white">@($"Could not login to TwitchChat account: {Error} - {ErrorDescription}.")</p>
+    }
+
+@code {
+
+    [Inject]
+    private TwitchChatService TwitchChatService { get; set; } = null!;
+
+    [Inject]
+    private TriggeredDbContext TriggeredDbContext { get; set; } = null!;
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = null!;
+
+    [Inject]
+    private MessagingService MessagingService { get; set; } = null!;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "code")]
+    public string? AuthorizationCode { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "scope")]
+    public string? Scopes { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "state")]
+    public string? State { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "error_description")]
+    public string? ErrorDescription { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (!string.IsNullOrWhiteSpace(AuthorizationCode) && !await TwitchChatService.GetAccessToken(AuthorizationCode, $"{TriggeredDbContext.Settings.GetSetting("Host")}/auth/chatredirect", State))
+            await TwitchChatService.Logout();
+        
+        if (!string.IsNullOrWhiteSpace(Error) && !string.IsNullOrWhiteSpace(ErrorDescription))
+            await MessagingService.AddMessage($"Could not login to TwitchChat account: {Error} - {ErrorDescription}.", MessageCategory.Authentication, LogLevel.Error);
+
+        await Task.Delay(3000);
+
+        NavigationManager.NavigateTo("/");
+    }
+}

@@ -40,16 +40,16 @@ namespace TwitchLib.Api.Core
             return TwitchGetGenericAsync<Models.Root.Root>("", ApiVersion.V5, accessToken: authToken, clientId: clientId);
         }
 
-        public string GetAccessToken(string accessToken = null)
+        public async Task<string> GetAccessToken(string accessToken = null)
         {
             if (!string.IsNullOrEmpty(accessToken))
                 return accessToken;
-            if (!string.IsNullOrEmpty(Settings.AccessToken))
-                return Settings.AccessToken;
-            if (!string.IsNullOrEmpty(Settings.ClientSecret) && !string.IsNullOrEmpty(Settings.ClientId) && !Settings.SkipAutoServerTokenGeneration)
+            if (!string.IsNullOrEmpty(await Settings.GetAccessTokenAsync()))
+                return await Settings.GetAccessTokenAsync();
+            if (!string.IsNullOrEmpty(await Settings.GetClientSecretAsync()) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()) && !Settings.SkipAutoServerTokenGeneration)
             {
                 if (_serverBasedAccessTokenExpiry == null || _serverBasedAccessTokenExpiry - TimeSpan.FromMinutes(1) < DateTime.Now)
-                    return GenerateServerBasedAccessToken();
+                    return await GenerateServerBasedAccessToken();
                 else
                     return _serverBasedAccessToken;
             }
@@ -57,12 +57,12 @@ namespace TwitchLib.Api.Core
             return null;
         }
 
-        public string GetServerAccessToken()
+        public async Task<string> GetServerAccessToken()
         {
-            if (!string.IsNullOrEmpty(Settings.ClientSecret) && !string.IsNullOrEmpty(Settings.ClientId))
+            if (!string.IsNullOrEmpty(await Settings.GetClientSecretAsync()) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
             {
                 if (_serverBasedAccessTokenExpiry == null || _serverBasedAccessTokenExpiry - TimeSpan.FromMinutes(1) < DateTime.Now)
-                    return GenerateServerBasedAccessToken();
+                    return await GenerateServerBasedAccessToken();
                 else
                     return _serverBasedAccessToken;
             }
@@ -70,9 +70,9 @@ namespace TwitchLib.Api.Core
            return null;
         }
 
-        internal string GenerateServerBasedAccessToken()
+        internal async Task<string> GenerateServerBasedAccessToken()
         {
-            var result = _http.GeneralRequest($"{BaseOauthToken}?client_id={Settings.ClientId}&client_secret={Settings.ClientSecret}&grant_type=client_credentials", "POST", null, ApiVersion.Helix, Settings.ClientId, null);
+            var result = await _http.GeneralRequest($"{BaseOauthToken}?client_id={await Settings.GetClientIdAsync()}&client_secret={await Settings.GetClientSecretAsync()}&grant_type=client_credentials", "POST", null, ApiVersion.Helix, await Settings.GetClientIdAsync(), null);
             if (result.Key == 200)
             {
                 var user = JsonConvert.DeserializeObject<dynamic>(result.Value);
@@ -93,140 +93,140 @@ namespace TwitchLib.Api.Core
             throw new ClientIdAndOAuthTokenRequired("As of May 1, all calls to Twitch's Helix API require Client-ID and OAuth access token be set. Example: api.Settings.AccessToken = \"twitch-oauth-access-token-here\"; api.Settings.ClientId = \"twitch-client-id-here\";");
         }
 
-        protected Task<T> TwitchGetGenericAsync<T>(string resource, ApiVersion api, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
+        protected async Task<T> TwitchGetGenericAsync<T>(string resource, ApiVersion api, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
         {
             var url = ConstructResourceUrl(resource, getParams, api, customBase);
 
-            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(Settings.ClientId))
-                clientId = Settings.ClientId;
+            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
+                clientId = await Settings.GetClientIdAsync();
 
-            accessToken = GetAccessToken(accessToken);
+            accessToken = await GetAccessToken(accessToken);
             ForceAccessTokenAndClientIdForHelix(clientId, accessToken, api);
 
-            return _rateLimiter.Perform(async () => await Task.Run(() => JsonConvert.DeserializeObject<T>(_http.GeneralRequest(url, "GET", null, api, clientId, accessToken).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
+            return await _rateLimiter.Perform(async () => await Task.Run(async () => JsonConvert.DeserializeObject<T>((await _http.GeneralRequest(url, "GET", null, api, clientId, accessToken)).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
         }
 
-        protected Task<T> TwitchPatchGenericAsync<T>(string resource, ApiVersion api, string payload, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
+        protected async Task<T> TwitchPatchGenericAsync<T>(string resource, ApiVersion api, string payload, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
         {
             var url = ConstructResourceUrl(resource, getParams, api, customBase);
 
-            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(Settings.ClientId))
-                clientId = Settings.ClientId;
+            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
+                clientId = await Settings.GetClientIdAsync();
 
-            accessToken = GetAccessToken(accessToken);
+            accessToken = await GetAccessToken(accessToken);
             ForceAccessTokenAndClientIdForHelix(clientId, accessToken, api);
 
-            return _rateLimiter.Perform(async () => await Task.Run(() => JsonConvert.DeserializeObject<T>(_http.GeneralRequest(url, "PATCH", payload, api, clientId, accessToken).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
+            return await _rateLimiter.Perform(async () => await Task.Run(async () => JsonConvert.DeserializeObject<T>((await _http.GeneralRequest(url, "PATCH", payload, api, clientId, accessToken)).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
         }
 
-        protected Task<string> TwitchPatchAsync(string resource, ApiVersion api, string payload, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
+        protected async Task<string> TwitchPatchAsync(string resource, ApiVersion api, string payload, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
         {
             var url = ConstructResourceUrl(resource, getParams, api, customBase);
 
-            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(Settings.ClientId))
-                clientId = Settings.ClientId;
+            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
+                clientId = await Settings.GetClientIdAsync();
 
-            accessToken = GetAccessToken(accessToken);
+            accessToken = await GetAccessToken(accessToken);
             ForceAccessTokenAndClientIdForHelix(clientId, accessToken, api);
 
-            return _rateLimiter.Perform(async () => await Task.Run(() => _http.GeneralRequest(url, "PATCH", payload, api, clientId, accessToken).Value).ConfigureAwait(false));
+            return await _rateLimiter.Perform(async () => await Task.Run(async () => (await _http.GeneralRequest(url, "PATCH", payload, api, clientId, accessToken)).Value).ConfigureAwait(false));
         }
 
-        protected Task<string> TwitchDeleteAsync(string resource, ApiVersion api, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
+        protected async Task<string> TwitchDeleteAsync(string resource, ApiVersion api, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
         {
             var url = ConstructResourceUrl(resource, getParams, api, customBase);
 
-            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(Settings.ClientId))
-                clientId = Settings.ClientId;
+            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
+                clientId = await Settings.GetClientIdAsync();
 
-            accessToken = GetAccessToken(accessToken);
+            accessToken = await GetAccessToken(accessToken);
             ForceAccessTokenAndClientIdForHelix(clientId, accessToken, api);
 
-            return _rateLimiter.Perform(async () => await Task.Run(() => _http.GeneralRequest(url, "DELETE", null, api, clientId, accessToken).Value).ConfigureAwait(false));
+            return await _rateLimiter.Perform(async () => await Task.Run(async () => (await _http.GeneralRequest(url, "DELETE", null, api, clientId, accessToken)).Value).ConfigureAwait(false));
         }
 
-        protected Task<T> TwitchPostGenericAsync<T>(string resource, ApiVersion api, string payload, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
+        protected async Task<T> TwitchPostGenericAsync<T>(string resource, ApiVersion api, string payload, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
         {
             var url = ConstructResourceUrl(resource, getParams, api, customBase);
 
-            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(Settings.ClientId))
-                clientId = Settings.ClientId;
+            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
+                clientId = await Settings.GetClientIdAsync();
 
-            accessToken = GetAccessToken(accessToken);
+            accessToken = await GetAccessToken(accessToken);
             ForceAccessTokenAndClientIdForHelix(clientId, accessToken, api);
 
-            return _rateLimiter.Perform(async () => await Task.Run(() => JsonConvert.DeserializeObject<T>(_http.GeneralRequest(url, "POST", payload, api, clientId, accessToken).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
+            return await _rateLimiter.Perform(async () => await Task.Run(async () => JsonConvert.DeserializeObject<T>((await _http.GeneralRequest(url, "POST", payload, api, clientId, accessToken)).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
         }
 
-        protected Task<T> TwitchPostGenericModelAsync<T>(string resource, ApiVersion api, RequestModel model, string accessToken = null, string clientId = null, string customBase = null)
+        protected async Task<T> TwitchPostGenericModelAsync<T>(string resource, ApiVersion api, RequestModel model, string accessToken = null, string clientId = null, string customBase = null)
         {
             var url = ConstructResourceUrl(resource, api: api, overrideUrl: customBase);
 
-            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(Settings.ClientId))
-                clientId = Settings.ClientId;
+            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
+                clientId = await Settings.GetClientIdAsync();
 
-            accessToken = GetAccessToken(accessToken);
+            accessToken = await GetAccessToken(accessToken);
             ForceAccessTokenAndClientIdForHelix(clientId, accessToken, api);
 
-            return _rateLimiter.Perform(async () => await Task.Run(() => JsonConvert.DeserializeObject<T>(_http.GeneralRequest(url, "POST", model != null ? _jsonSerializer.SerializeObject(model) : "", api, clientId, accessToken).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
+            return await _rateLimiter.Perform(async () => await Task.Run(async () => JsonConvert.DeserializeObject<T>((await _http.GeneralRequest(url, "POST", model != null ? _jsonSerializer.SerializeObject(model) : "", api, clientId, accessToken)).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
         }
 
-        protected Task<T> TwitchDeleteGenericAsync<T>(string resource, ApiVersion api, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
+        protected async Task<T> TwitchDeleteGenericAsync<T>(string resource, ApiVersion api, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
         {
             var url = ConstructResourceUrl(resource, getParams, api, customBase);
 
-            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(Settings.ClientId))
-                clientId = Settings.ClientId;
+            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
+                clientId = await Settings.GetClientIdAsync();
 
-            accessToken = GetAccessToken(accessToken);
+            accessToken =  await GetAccessToken(accessToken);
             ForceAccessTokenAndClientIdForHelix(clientId, accessToken, api);
 
-            return _rateLimiter.Perform(async () => await Task.Run(() => JsonConvert.DeserializeObject<T>(_http.GeneralRequest(url, "DELETE", null, api, clientId, accessToken).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
+            return await _rateLimiter.Perform(async () => await Task.Run(async () => JsonConvert.DeserializeObject<T>((await _http.GeneralRequest(url, "DELETE", null, api, clientId, accessToken)).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
         }
 
-        protected Task<T> TwitchPutGenericAsync<T>(string resource, ApiVersion api, string payload = null, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
+        protected async Task<T> TwitchPutGenericAsync<T>(string resource, ApiVersion api, string payload = null, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
         {
             var url = ConstructResourceUrl(resource, getParams, api, customBase);
 
-            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(Settings.ClientId))
-                clientId = Settings.ClientId;
+            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
+                clientId = await Settings.GetClientIdAsync();
 
-            accessToken = GetAccessToken(accessToken);
+            accessToken = await GetAccessToken(accessToken);
             ForceAccessTokenAndClientIdForHelix(clientId, accessToken, api);
 
-            return _rateLimiter.Perform(async () => await Task.Run(() => JsonConvert.DeserializeObject<T>(_http.GeneralRequest(url, "PUT", payload, api, clientId, accessToken).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
+            return await _rateLimiter.Perform(async () => await Task.Run(async () => JsonConvert.DeserializeObject<T>((await _http.GeneralRequest(url, "PUT", payload, api, clientId, accessToken)).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
         }
 
-        protected Task<string> TwitchPutAsync(string resource, ApiVersion api, string payload, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
+        protected async Task<string> TwitchPutAsync(string resource, ApiVersion api, string payload, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
         {
             var url = ConstructResourceUrl(resource, getParams, api, customBase);
 
-            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(Settings.ClientId))
-                clientId = Settings.ClientId;
+            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
+                clientId = await Settings.GetClientIdAsync();
 
-            accessToken = GetAccessToken(accessToken);
+            accessToken = await GetAccessToken(accessToken);
             ForceAccessTokenAndClientIdForHelix(clientId, accessToken, api);
 
-            return _rateLimiter.Perform(async () => await Task.Run(() => _http.GeneralRequest(url, "PUT", payload, api, clientId, accessToken).Value).ConfigureAwait(false));
+            return await _rateLimiter.Perform(async () => await Task.Run(async () => (await _http.GeneralRequest(url, "PUT", payload, api, clientId, accessToken)).Value).ConfigureAwait(false));
         }
 
-        protected Task<KeyValuePair<int, string>> TwitchPostAsync(string resource, ApiVersion api, string payload, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
+        protected async Task<KeyValuePair<int, string>> TwitchPostAsync(string resource, ApiVersion api, string payload, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, string clientId = null, string customBase = null)
         {
             var url = ConstructResourceUrl(resource, getParams, api, customBase);
 
-            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(Settings.ClientId))
-                clientId = Settings.ClientId;
+            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
+                clientId = await Settings.GetClientIdAsync();
 
-            accessToken = GetAccessToken(accessToken);
+            accessToken = await GetAccessToken(accessToken);
             ForceAccessTokenAndClientIdForHelix(clientId, accessToken, api);
 
-            return _rateLimiter.Perform(async () => await Task.Run(() => _http.GeneralRequest(url, "POST", payload, api, clientId, accessToken)).ConfigureAwait(false));
+            return await _rateLimiter.Perform(async () => await Task.Run(async () => await _http.GeneralRequest(url, "POST", payload, api, clientId, accessToken)).ConfigureAwait(false));
         }
 
 
-        protected void PutBytes(string url, byte[] payload)
+        protected async Task PutBytes(string url, byte[] payload)
         {
-            _http.PutBytes(url, payload);
+            await _http.PutBytes(url, payload);
         }
 
         internal int RequestReturnResponseCode(string url, string method, List<KeyValuePair<string, string>> getParams = null)
@@ -234,7 +234,7 @@ namespace TwitchLib.Api.Core
             return _http.RequestReturnResponseCode(url, method, getParams);
         }
 
-        protected Task<T> GetGenericAsync<T>(string url, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, ApiVersion api = ApiVersion.V5, string clientId = null)
+        protected async Task<T> GetGenericAsync<T>(string url, List<KeyValuePair<string, string>> getParams = null, string accessToken = null, ApiVersion api = ApiVersion.V5, string clientId = null)
         {
             if (getParams != null)
             {
@@ -247,13 +247,13 @@ namespace TwitchLib.Api.Core
                 }
             }
 
-            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(Settings.ClientId))
-                clientId = Settings.ClientId;
+            if (string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(await Settings.GetClientIdAsync()))
+                clientId = await Settings.GetClientIdAsync();
 
-            accessToken = GetAccessToken(accessToken);
+            accessToken = await GetAccessToken(accessToken);
             ForceAccessTokenAndClientIdForHelix(clientId, accessToken, api);
 
-            return _rateLimiter.Perform(async () => await Task.Run(() => JsonConvert.DeserializeObject<T>(_http.GeneralRequest(url, "GET", null, api, clientId, accessToken).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
+            return await _rateLimiter.Perform(async () => await Task.Run(async () => JsonConvert.DeserializeObject<T>((await _http.GeneralRequest(url, "GET", null, api, clientId, accessToken)).Value, _twitchLibJsonDeserializer)).ConfigureAwait(false));
         }
 
         internal Task<T> GetSimpleGenericAsync<T>(string url, List<KeyValuePair<string, string>> getParams = null)

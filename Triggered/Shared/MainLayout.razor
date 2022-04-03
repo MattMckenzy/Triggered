@@ -1,0 +1,162 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using Triggered.Extensions
+@using Triggered.Models
+@inherits LayoutComponentBase
+
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+<PageTitle>Triggered</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 auth">
+            @if(TwitchServiceIsLoggedIn && TwitchService.User != null)
+            {
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnLogoutClick>
+                    <img class="auth-circle" src="@TwitchService.User.ProfileImageUrl" />   
+                </button>             
+            }            
+            else if(TwitchServiceIsLoggedIn)
+            {
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnLogoutClick>
+                    <i class="auth-circle bi-x-lg" />   
+                </button>             
+            }
+            else
+            {                
+                <button type="button" class="btn btn-outline-light rounded-circle p-0 auth-button" @onclick=OnLoginClick>
+                    <img class="auth-circle" src="assets/TwitchGlitchPurple.svg"  />     
+                </button>                         
+            }
+
+            @if (UseSecondAccount)
+            {
+                if(TwitchChatServiceIsLoggedIn && TwitchChatService.User != null)
+                {
+                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnChatLogoutClick>
+                        <img class="auth-circle" src="@TwitchChatService.User.ProfileImageUrl" />   
+                    </button>             
+                }
+                else if(TwitchChatServiceIsLoggedIn)
+                {                
+                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnChatLoginClick>
+                        <i class="auth-circle bi-x-lg" />   
+                    </button>                         
+                }
+                else
+                {                
+                    <button type="button" class="btn btn-outline-light rounded-circle p-0 ms-3 auth-button" @onclick=OnChatLoginClick>
+                        <img class="auth-circle" src="assets/TwitchGlitchBlackOps.svg"  />     
+                    </button>                         
+                }
+            }
+        </div>
+
+        <article class="content px-4">
+            <CascadingValue Value="this">
+                @Body
+            </CascadingValue>
+        </article>
+    </main>
+</div>
+
+
+@code {
+
+    [Inject]
+    private TwitchService TwitchService { get; set; } = null!;
+
+    [Inject]
+    private TwitchChatService TwitchChatService { get; set; } = null!;
+
+    [Inject]
+    private IDbContextFactory<TriggeredDbContext> DbContextFactory { get; set; } = null!;
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = null!;
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = null!;
+
+    private ModalPrompt ModalPromptReference = null!;
+
+    private bool UseSecondAccount = false;
+    private bool TwitchServiceIsLoggedIn = false;
+    private bool TwitchChatServiceIsLoggedIn = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchChatUseSecondAccount"), out UseSecondAccount);
+        TwitchServiceIsLoggedIn = await TwitchService.IsLoggedIn();
+        TwitchChatServiceIsLoggedIn = await TwitchChatService.IsLoggedIn();
+        await base.OnInitializedAsync();
+    }
+
+    public async Task RefreshState()
+    {
+        bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchChatUseSecondAccount"), out UseSecondAccount);
+        TwitchServiceIsLoggedIn = await TwitchService.IsLoggedIn();
+        TwitchChatServiceIsLoggedIn = await TwitchChatService.IsLoggedIn();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnLoginClick()
+    {
+        if (await TwitchService.Initialize())
+        {            
+            string? authCodeUri = await TwitchService.GetAuthorizationCodeUrl($"{DbContextFactory.CreateDbContext().Settings.GetSetting("Host")}/auth/redirect");
+            if (authCodeUri != null)
+                await JSRuntime.InvokeVoidAsync("open", authCodeUri);
+        }
+
+        NavigationManager.NavigateTo("/", true);
+    }
+
+    private async void OnLogoutClick()
+    {
+        await ModalPromptReference.ShowModalPrompt(new()
+        {
+            Title = "WARNING: Logging out of Twitch!",
+            Message = $"Are you sure you want to logout and stop the Twitch service?",
+            CancelChoice = "Cancel",
+            Choice = "Yes",
+            ChoiceColour = "danger",
+            ChoiceAction = async () => {
+                await TwitchService.Logout();
+                NavigationManager.NavigateTo("/", true); 
+            }
+        });
+    }
+
+    private async void OnChatLoginClick()
+    {
+        if (await TwitchChatService.Initialize())
+        {            
+            string? authCodeUri = await TwitchChatService.GetAuthorizationCodeUrl($"{DbContextFactory.CreateDbContext().Settings.GetSetting("Host")}/auth/chatredirect");
+            if (authCodeUri != null)
+                await JSRuntime.InvokeVoidAsync("open", authCodeUri);
+        }
+        
+        NavigationManager.NavigateTo("/", true);
+    }
+
+    private async void OnChatLogoutClick()
+    {
+        await ModalPromptReference.ShowModalPrompt(new()
+        {
+            Title = "WARNING: Chat account logging out of Twitch!",
+            Message = $"Are you sure you want to have the chat account logout and stop the TwitchChat service?",
+            CancelChoice = "Cancel",
+            Choice = "Yes",
+            ChoiceColour = "danger",
+            ChoiceAction = async () => {
+                await TwitchChatService.Logout();
+                NavigationManager.NavigateTo("/", true); 
+            }
+        });
+    }
+}
