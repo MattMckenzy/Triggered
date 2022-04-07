@@ -48,6 +48,7 @@ namespace Triggered.Launcher
         {
             try
             {
+
                 CancellationTokenSource = new CancellationTokenSource();
                 HttpClient client = new();
                 HttpResponseMessage responseMessage = await client.GetAsync("https://raw.githubusercontent.com/MattMckenzy/Triggered/main/Releases/win-x64/latest");
@@ -56,19 +57,14 @@ namespace Triggered.Launcher
                 ConsoleContent.WriteLine($"Latest version available: v{onlineVersion}");
 
                 string localPath = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0])!;
+                FileInfo currentLauncher = new(Path.Combine(localPath, "Triggered.Launcher.exe"));
+                string currentLauncherPath = currentLauncher.FullName;
+                File.Delete(currentLauncherPath.Replace("exe", "bak"));
+
                 FileInfo localExecutable = new(Path.Combine(localPath, "Triggered", "Triggered.exe"));
                 Version localVersion = new("0.0.0");
                 if (localExecutable.Exists)                
                     localVersion = new Version(FileVersionInfo.GetVersionInfo(localExecutable.FullName).FileVersion ?? "0.0.0");
-
-                FileInfo localAppsettingsFile = new(Path.Combine(localPath, "Triggered", "appsettings.json"));
-                if (localAppsettingsFile.Exists)
-                {
-                    JObject? localSettingsJson = JObject.Parse(File.ReadAllText(localAppsettingsFile.FullName));
-                    string? url = localSettingsJson?.SelectToken("Kestrel.Endpoints.Https.Url")?.ToString();
-                    if (url != null)
-                        Uri = new Uri(url.Replace("*", "localhost").Replace("+", "localhost"));
-                }
 
                 if (localVersion == new Version("0.0.0"))
                     ConsoleContent.WriteLine($"Current version: none found!");
@@ -124,14 +120,20 @@ namespace Triggered.Launcher
                     ZipFile.ExtractToDirectory(zipPath, localPath, true);
                     File.Delete(zipPath);
 
-                    FileInfo currentLauncher = new(Path.Combine(localPath, "Triggered.Launcher.exe"));
                     FileInfo newLauncher = new(Path.Combine(localPath, "Triggered", "Triggered.Launcher.exe"));
-                    string currentLauncherPath = currentLauncher.FullName;
-                    File.Delete(currentLauncherPath.Replace("exe", "bak"));
                     currentLauncher.MoveTo(currentLauncherPath.Replace("exe", "bak"));
                     newLauncher.MoveTo(currentLauncherPath);
 
                     ConsoleContent.WriteLine($"Update Complete.");
+                }
+
+                FileInfo localAppsettingsFile = new(Path.Combine(localPath, "Triggered", "appsettings.json"));
+                if (localAppsettingsFile.Exists)
+                {
+                    JObject? localSettingsJson = JObject.Parse(File.ReadAllText(localAppsettingsFile.FullName));
+                    string? url = localSettingsJson?.SelectToken("Kestrel.Endpoints.HttpsInlineCertFile.Url")?.ToString();
+                    if (url != null)
+                        Uri = new Uri(url.Replace("*", "localhost").Replace("+", "localhost"));
                 }
 
                 ConsoleContent.WriteLine(string.Empty);

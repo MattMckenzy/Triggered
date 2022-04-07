@@ -14,7 +14,7 @@
     </ContextMenu>
 
     <tb:TaskbarIcon x:Key="NotifyIcon"
-                    IconSource="/Resources/Triggered.ico"
+                    IconSource="/Resources/Logo.ico"
                     ToolTipText="Double-click to open launcher console, right-click for commands."
                     DoubleClickCommand="{Binding LaunchTriggeredCommand}"
                     ContextMenu="{StaticResource SysTrayMenu}">
