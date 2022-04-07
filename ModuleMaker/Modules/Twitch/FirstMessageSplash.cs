@@ -5,13 +5,13 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Triggered.Services;
-using TwitchLib.EventSub.Webhooks.Core.EventArgs.Channel;
+using TwitchLib.Client.Events;
 
-namespace TownBulletin.Modules.OnFollow
+namespace ModuleMaker.Modules.Twitch
 {
-    public class OnFollow
+    public class FirstMessageSplash
     {
-        public static async Task<bool> ShowFollowSplash(ChannelFollowArgs eventArgs, ObsService obsService, QueueService queueService)
+        public async static Task<bool> ShowFirstMessageHeffry(OnRitualNewChatterArgs eventArgs, QueueService queueService, ObsService obsService, TwitchChatService twitchChatService)
         {
             await queueService.Add("TopSplash", async () => {
 
@@ -25,7 +25,7 @@ namespace TownBulletin.Modules.OnFollow
                 async void OBSWebsocket_MediaEnded(object sender, MediaEventArgs e)
                 {
                     DateTime currentTime = DateTime.Now;
-                    if (currentTime < minimumTime)  
+                    if (currentTime < minimumTime)
                         await Task.Delay((int)(minimumTime - currentTime).TotalMilliseconds);
 
                     sceneItemProperties.Visible = false;
@@ -38,8 +38,12 @@ namespace TownBulletin.Modules.OnFollow
                 {
                     obsService.OBSWebsocket.MediaEnded += OBSWebsocket_MediaEnded;
 
+                    twitchChatService.TwitchClient.SendMessage("mattmckenzy", $"Welcome to MattMckenzy's Channel, {eventArgs.RitualNewChatter.DisplayName}! Please be courteous and treat everyone with respect. However, feel free to interrupt him and ask him anything, he loves answering questions!");
+
+                    twitchChatService.TwitchClient.SendMessage("mattmckenzy", $"Bienvenue à la chaîne de MattMckenzy, {eventArgs.RitualNewChatter.DisplayName}! S'il vous plaît, restez poli et respectueux. Sentez-vous libre de l'interrompre avec tous vos questions, il adore jaser!");
+
                     TextGDIPlusProperties properties = obsService.OBSWebsocket.GetTextGDIPlusProperties("FollowText");
-                    properties.Text = $"Thank you for the follow!\r\nMerci beaucoup pour le suivi!\r\n{eventArgs.Notification.Event.UserName}";
+                    properties.Text = $"Welcome to the channel!\r\nBienvenue à la chaîne!\r\n{eventArgs.RitualNewChatter.DisplayName}";
                     obsService.OBSWebsocket.SetTextGDIPlusProperties(properties);
 
                     DirectoryInfo followResourcesDirectory = new("D:\\Streaming\\Animations\\Follow");
@@ -72,7 +76,6 @@ namespace TownBulletin.Modules.OnFollow
                 }
 
                 return true;
-
             });
 
             return true;

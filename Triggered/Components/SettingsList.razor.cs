@@ -62,7 +62,9 @@ namespace Triggered.Components
             "TwitchUserName",
             "TwitchChannelName",
             "TwitchAccessToken",
-            "TwitchRefreshToken"
+            "TwitchRefreshToken",
+            "WebhookHost",
+            "UseWebhookHostProxy"
         };
 
         private readonly IEnumerable<string> TwitchLoginResetSettings = new string[]
@@ -92,6 +94,7 @@ namespace Triggered.Components
         {
             "Host",
             "WebhookHost",
+            "UseWebhookHostProxy", 
             "Autostart",
             "ModuleTemplate",
             "ExternalModulesPath",

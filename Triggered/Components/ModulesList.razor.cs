@@ -93,7 +93,7 @@ namespace Triggered.Components
         private Task PopulateExternalModules()
         {
             ExternalModules.Clear();
-            if (DbContextFactory.CreateDbContext().Settings.GetSetting("ExternalResourcesPath").TryCreateDirectory(out DirectoryInfo? directoryInfo))
+            if (DbContextFactory.CreateDbContext().Settings.GetSetting("ExternalModulesPath").TryCreateDirectory(out DirectoryInfo? directoryInfo))
                 foreach (FileInfo module in directoryInfo!.EnumerateFiles("*.cs", SearchOption.AllDirectories).OrderBy(file => file.Name))
                 {
                     string moduleCode = File.ReadAllText(module.FullName);

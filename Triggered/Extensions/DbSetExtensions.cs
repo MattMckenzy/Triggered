@@ -7,8 +7,9 @@ namespace Triggered.Extensions
     {
         private static readonly Dictionary<string, string> defaultSettings = new()
         {
-            { "Host", "https://localhost" },
-            { "WebhookHost", "https://{external_ip}" },
+            { "Host", "https://localhost:7121" },
+            { "WebhookHost", "https://proxy.triggered.events" },
+            { "UseWebhookHostProxy", "True" },
             { "Autostart", "true" },
             { "ModuleTemplate", 
               @"using System;

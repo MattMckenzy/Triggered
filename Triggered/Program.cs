@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -61,9 +60,6 @@ WebApplication app = builder.Build();
 //   Setting up singleton services.
 // **********************************
 
-if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-    PromptForFirewall();
-
 using (IServiceScope scope = app.Services.CreateAsyncScope())
 {
     TriggeredDbContext triggeredDbContext = scope.ServiceProvider.GetRequiredService<TriggeredDbContext>();
@@ -77,7 +73,13 @@ using (IServiceScope scope = app.Services.CreateAsyncScope())
     TwitchChatService twitchChatService = scope.ServiceProvider.GetRequiredService<TwitchChatService>();
     if (await twitchChatService.Initialize() && await twitchChatService.IsLoggedIn())
         await twitchChatService.GetChannelInformation();
-        
+
+    ObsService obsService = scope.ServiceProvider.GetRequiredService<ObsService>();
+    DiscordService discordService = scope.ServiceProvider.GetRequiredService<DiscordService>();
+
+    ModuleService moduleService = scope.ServiceProvider.GetRequiredService<ModuleService>();
+    moduleService.RegisterCustomEvent();
+
     if (triggeredDbContext.Settings.GetSetting("Autostart").Equals("true", StringComparison.InvariantCultureIgnoreCase))
     {
         List<Action> actions = new();
@@ -88,10 +90,8 @@ using (IServiceScope scope = app.Services.CreateAsyncScope())
         if (await twitchChatService.IsLoggedIn())
             actions.Add(async () => await twitchChatService.StartAsync());
 
-        ObsService obsService = scope.ServiceProvider.GetRequiredService<ObsService>();
         actions.Add(async () => await obsService.StartAsync());
 
-        DiscordService discordService = scope.ServiceProvider.GetRequiredService<DiscordService>();
         actions.Add(async () => await discordService.StartAsync());
 
         Parallel.Invoke(actions.ToArray());
@@ -103,7 +103,7 @@ using (IServiceScope scope = app.Services.CreateAsyncScope())
 // ******************************************
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler("/Error"); 
     app.UseHsts();
 }
 
@@ -120,16 +120,6 @@ app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
 app.Run();
-
-static void PromptForFirewall()
-{
-    IPAddress ipAddress = Dns.GetHostEntry(Dns.GetHostName()).AddressList[0];
-    IPEndPoint ipLocalEndPoint = new(ipAddress, 443);
-
-    TcpListener t = new(ipLocalEndPoint);
-    t.Start();
-    t.Stop();
-}
 
 static void CreateCertificate(string path, string password)
 {

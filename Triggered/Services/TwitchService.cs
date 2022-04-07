@@ -1,20 +1,23 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore;
 using Triggered.Extensions;
 using Triggered.Models;
 using TwitchLib.Api.Core.Enums;
 using TwitchLib.Api.Helix.Models.EventSub;
 using TwitchLib.EventSub.Webhooks.Core;
 using TwitchLib.PubSub;
+using TwitchLib.PubSub.Events;
 
 namespace Triggered.Services
 {
     public class TwitchService : TwitchServiceBase
     {
+        #region Private Variables
+
         private readonly MessagingService _messagingService;
         private readonly ModuleService _moduleService;
         private readonly IConfiguration _configuration;
         private readonly IDbContextFactory<TriggeredDbContext> _dbContextFactory;
-
 
         private readonly IEnumerable<(string, string, Dictionary<string, string>, string)> _eventSubscriptions = new List<(string, string, Dictionary<string, string>, string)>
         {
@@ -58,8 +61,16 @@ namespace Triggered.Services
             ("user.update", "1", new Dictionary<string, string> { { "user_id", "" } }, "webhook"),
         };
 
+        #endregion
+
+        #region Public Properties
+
         public TwitchPubSub TwitchPubSub { get; set; } = new();
         public ITwitchEventSubWebhooks TwitchEventSubWebhooks { get; set; } = null!;
+
+        #endregion
+
+        #region Constructor
 
         public TwitchService(IDbContextFactory<TriggeredDbContext> dbContextFactory,
                                 ModuleService moduleService,
@@ -126,22 +137,47 @@ namespace Triggered.Services
             {
                 (nameof(TwitchService), typeof(TwitchService), this)
             });
+
             _moduleService.InitializeSupportedEventsAndParameters(TwitchPubSub);
             _moduleService.InitializeSupportedEventsAndParameters(TwitchEventSubWebhooks);
         }
 
+        #endregion
+
+        #region Service Connections
+
         protected async Task Connect()
         {
-            string? accessToken = await GetValidToken();
-            if (accessToken == null)
-            {
-                await _messagingService.AddMessage("Could not start Twitch services. Access Token was not found.", MessageCategory.Service, LogLevel.Error);
-                return;
-            }
+            await InitializePubSub();
 
+            await InitializeEventSub();
+        }
+
+        private int disconnections = 0;
+        private DateTime lastDisconnection = DateTime.MinValue;
+
+        protected Task Disconnect()
+        {
+            _moduleService.DeregisterEvents(TwitchPubSub);
+            _moduleService.DeregisterEvents(TwitchEventSubWebhooks);
+            TwitchPubSub.Disconnect();
+            return Task.CompletedTask;
+        }
+
+        #endregion
+
+        #region Service Events
+
+
+        #endregion
+
+        #region Private Helpers
+
+        private async Task InitializePubSub()
+        {
             if (User == null)
             {
-                await _messagingService.AddMessage("Could not start Twitch services. User information was not found.", MessageCategory.Service, LogLevel.Error);
+                await _messagingService.AddMessage("Could not start Twitch PubSub. User information was not found.", MessageCategory.Service, LogLevel.Error);
                 return;
             }
 
@@ -161,59 +197,95 @@ namespace Triggered.Services
             TwitchPubSub.ListenToVideoPlayback(User.Id);
             TwitchPubSub.ListenToWhispers(User.Id);
 
-            TwitchPubSub.OnPubSubServiceConnected += TwitchPubSub_OnPubSubServiceConnected;
-            TwitchPubSub.OnListenResponse += TwitchPubSub_OnListenResponse;
-            TwitchPubSub.OnPubSubServiceClosed += TwitchPubSub_OnPubSubServiceClosed;
+            TwitchPubSub.OnPubSubServiceConnected += async (_, __) =>
+            {
+                TwitchPubSub.SendTopics(await GetValidToken());
+                await _messagingService.AddMessage("Twitch PubSub connected!", MessageCategory.Service, LogLevel.Debug);
+            };
+
+            TwitchPubSub.OnListenResponse += async (_, eventArgs) =>
+            {
+                if (eventArgs.Successful)
+                    await _messagingService.AddMessage($"Twitch PubSub succesfully listening for topic: {eventArgs.Topic}", MessageCategory.Service, LogLevel.Trace);
+                else if (!eventArgs.Successful)
+                    await _messagingService.AddMessage($"Twitch PubSub failed to listen for topic: {eventArgs.Topic}", MessageCategory.Service, LogLevel.Trace);
+            };
+
+            TwitchPubSub.OnPubSubServiceClosed += async (_, __) =>
+            {
+                if (!_cancellationTokenSource.IsCancellationRequested && DateTime.Now - lastDisconnection < TimeSpan.FromMinutes(1) && disconnections >= 3)
+                {
+                    _cancellationTokenSource.Cancel();
+                    await _messagingService.AddMessage("Could not connect to Twitch PubSub service after three retries, service stopped.", MessageCategory.Service, LogLevel.Error);
+                }
+                else if (!_cancellationTokenSource.IsCancellationRequested)
+                {
+                    disconnections++;
+                    await _messagingService.AddMessage($"Disconnected from Twitch PubSub. Connection retrying...", MessageCategory.Service, LogLevel.Warning);
+                    TwitchPubSub.Connect();
+                }
+
+                lastDisconnection = DateTime.Now;
+            };
 
             TwitchPubSub.Connect();
+        }
 
+
+        private async Task InitializeEventSub()
+        {
             // TODO: Add Extension EBS.
 
             TriggeredDbContext triggeredDbContext = _dbContextFactory.CreateDbContext();
 
             string serverAccessToken = await TwitchAPI.Auth.GetServerAccessToken();
-            await RefreshEventSubscriptions($"{triggeredDbContext.Settings.GetSetting("WebhookHost")}/twitch/events/webhook", serverAccessToken, _configuration["TwitchSecret"]);
-        }
 
-        protected Task Disconnect()
-        {
-            _moduleService.DeregisterEvents(TwitchPubSub);
-            _moduleService.DeregisterEvents(TwitchEventSubWebhooks);
-            TwitchPubSub.Disconnect();
-            return Task.CompletedTask;
-        }
+            string webhookHost = triggeredDbContext.Settings.GetSetting("WebhookHost");
+            string secret = _configuration["TwitchSecret"];
 
-        private async void TwitchPubSub_OnPubSubServiceConnected(object? sender, EventArgs e)
-        {
-            TwitchPubSub.SendTopics(await GetValidToken());
-            await _messagingService.AddMessage("Twitch PubSub connected!", MessageCategory.Service, LogLevel.Debug);
-        }
-
-        private int disconnections = 0;
-        private DateTime lastDisconnection = DateTime.MinValue;
-        private async void TwitchPubSub_OnPubSubServiceClosed(object? sender, EventArgs e)
-        {
-            if (!_cancellationTokenSource.IsCancellationRequested && DateTime.Now - lastDisconnection < TimeSpan.FromMinutes(1) && disconnections >= 3)
+            if (bool.TryParse(triggeredDbContext.Settings.GetSetting("UseWebhookHostProxy"), out bool result) && result)
             {
-                _cancellationTokenSource.Cancel();
-                await _messagingService.AddMessage("Could not connect to Twitch PubSub service after three retries, service stopped.", MessageCategory.Service, LogLevel.Error);
-            }
-            else if (!_cancellationTokenSource.IsCancellationRequested)
-            {
-                disconnections++;
-                await _messagingService.AddMessage($"Disconnected from Twitch PubSub. Connection retrying...", MessageCategory.Service, LogLevel.Warning);
-                TwitchPubSub.Connect();
+                HubConnection hubConnection;
+                try
+                {
+                    hubConnection = new HubConnectionBuilder()
+                       .WithUrl($"{webhookHost}/proxyhub")
+                       .WithAutomaticReconnect()
+                       .Build();
+
+                    await hubConnection.StartAsync(_cancellationTokenSource.Token);
+                    secret = await hubConnection.InvokeAsync<string>("GetSecret", 89, _cancellationTokenSource.Token);
+                    await hubConnection.StopAsync(_cancellationTokenSource.Token);
+
+                    hubConnection = new HubConnectionBuilder()
+                       .WithUrl($"{webhookHost}/proxyhub?secret={secret}")
+                       .WithAutomaticReconnect()
+                       .Build();
+
+                    await hubConnection.StartAsync(_cancellationTokenSource.Token);
+                }
+                catch (Exception exception)
+                {
+                    await _messagingService.AddMessage($"Could not connect to EventSub proxy: {exception.Message}", MessageCategory.Service, LogLevel.Error);
+                    _cancellationTokenSource.Cancel();
+                    return;
+                }
+
+                hubConnection.Closed += async (exception) =>
+                {
+                    await _messagingService.AddMessage($"EventSub proxy closed: {exception?.Message ?? "N/A"}", MessageCategory.Service, LogLevel.Error);
+                    _cancellationTokenSource.Cancel();
+                };
+                hubConnection.Reconnecting += async (exception) => await _messagingService.AddMessage($"EventSub proxy reconnecting: {exception?.Message ?? "N/A"}", MessageCategory.Service, LogLevel.Debug);
+                hubConnection.Reconnected += async (_) => await _messagingService.AddMessage($"Succesfully reconnected to EventSub proxy!", MessageCategory.Service, LogLevel.Debug);
+
+                await _messagingService.AddMessage("Connected to EventSub proxy!", MessageCategory.Service, LogLevel.Debug);
+
+                hubConnection.On<Dictionary<string, string>?, string>(nameof(ProcessEventNotification), ProcessEventNotification);
             }
 
-            lastDisconnection = DateTime.Now;
-        }
-
-        private async void TwitchPubSub_OnListenResponse(object? sender, TwitchLib.PubSub.Events.OnListenResponseArgs e)
-        {
-            if (e.Successful)
-                await _messagingService.AddMessage($"Twitch PubSub succesfully listening for topic: {e.Topic}", MessageCategory.Service, LogLevel.Debug);
-            else if (!e.Successful)
-                await _messagingService.AddMessage($"Twitch PubSub failed to listen for topic: {e.Topic}", MessageCategory.Service, LogLevel.Error);
+            if (!_cancellationTokenSource.IsCancellationRequested)
+                await RefreshEventSubscriptions($"{webhookHost}/eventsub/webhook", serverAccessToken, secret);
         }
 
         private async Task RefreshEventSubscriptions(string webhook, string serverAccessToken, string secret)
@@ -268,7 +340,6 @@ namespace Triggered.Services
             return true;
         }
 
-
         private async Task<bool> CreateEventSubscription(string webhook, string serverAccessToken, string secret, string type, string version, Dictionary<string, string> conditions, string method)
         {
             //TODO: add drop and extension events. 
@@ -291,7 +362,7 @@ namespace Triggered.Services
             else if (createEventSubSubscriptionResponse.Subscriptions.FirstOrDefault()!.Status != "enabled" && createEventSubSubscriptionResponse.Subscriptions.FirstOrDefault()!.Status != "webhook_callback_verification_pending")
                 await _messagingService.AddMessage($"Failed to register webhook \"{type}\" at \"{webhook}\" because \"{createEventSubSubscriptionResponse.Subscriptions.FirstOrDefault()!.Status}\".", MessageCategory.Service, LogLevel.Error);
 
-            DateTime verificationTime = DateTime.Now + TimeSpan.FromMinutes(10);
+            DateTime verificationTime = DateTime.Now + TimeSpan.FromMinutes(1);
             TimeSpan delayTime = TimeSpan.FromSeconds(1);
             while (verificationTime > DateTime.Now)
             {
@@ -303,17 +374,17 @@ namespace Triggered.Services
 
                 if (eventSubscriptions?.Subscriptions?.FirstOrDefault()?.Status == "enabled")
                 {
-                    await _messagingService.AddMessage($"Twitch succesfully subscribed to webhook for topic: \"{type}\"", MessageCategory.Service, LogLevel.Debug);
+                    await _messagingService.AddMessage($"Twitch succesfully subscribed to webhook for topic: \"{type}\"", MessageCategory.Service, LogLevel.Trace);
                     return true;
                 }
                 else if (eventSubscriptions?.Subscriptions?.FirstOrDefault()?.Status == "webhook_callback_verification_pending")
                 {
-                    await _messagingService.AddMessage($"Twitch still waiting for verification on topic: \"{type}\"", MessageCategory.Service, LogLevel.Debug);
+                    await _messagingService.AddMessage($"Twitch still waiting for verification on topic: \"{type}\"", MessageCategory.Service, LogLevel.Trace);
                     continue;
                 }
                 else
                 {
-                    await _messagingService.AddMessage($"Twitch failed to verify subscription to webhook for topic: \"{type}\" with status: \"{eventSubscriptions?.Subscriptions?.FirstOrDefault()?.Status}\"", MessageCategory.Service, LogLevel.Error);
+                    await _messagingService.AddMessage($"Twitch failed to verify subscription to webhook for topic: \"{type}\" with status: \"{eventSubscriptions?.Subscriptions?.FirstOrDefault()?.Status}\"", MessageCategory.Service, LogLevel.Trace);
                     return false;
                 }
             }
@@ -321,5 +392,18 @@ namespace Triggered.Services
             await _messagingService.AddMessage($"Twitch webhook verification for topic: \"{type}\" timed out.", MessageCategory.Service, LogLevel.Error);
             return false;
         }
+
+        public async Task ProcessEventNotification(Dictionary<string, string>? headers, string body)
+        {
+            using MemoryStream stream = new();
+            using StreamWriter streamWriter = new(stream);
+            await streamWriter.WriteAsync(body);
+            await streamWriter.FlushAsync();
+            stream.Position = 0;
+
+            await TwitchEventSubWebhooks.ProcessNotificationAsync(headers ?? new Dictionary<string, string>(), stream);
+        }
+
+        #endregion
     }
 }

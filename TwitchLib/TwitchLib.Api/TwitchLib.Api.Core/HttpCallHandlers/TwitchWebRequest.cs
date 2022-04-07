@@ -16,6 +16,7 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
         private readonly ILogger<TwitchWebRequest> _logger;
         private readonly Func<Task<string>> _tokenRefreshDelegate;
         private readonly Func<Exception, Task> _webExceptionHandler;
+        private DateTime _lastRefresh = DateTime.MinValue;
 
         /// <summary>
         /// Creates an Instance of the TwitchHttpClient Class.
@@ -40,6 +41,13 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
 
         public async Task<KeyValuePair<int, string>> GeneralRequest(string url, string method, string payload = null, ApiVersion api = ApiVersion.V5, string clientId = null, string accessToken = null, bool refreshedToken = false)
         {
+            if (!string.IsNullOrEmpty(accessToken) && !refreshedToken && DateTime.Now > _lastRefresh + TimeSpan.FromHours(1))
+            {
+                _lastRefresh = DateTime.Now;
+                string refreshedAccessToken = await _tokenRefreshDelegate();
+                return await GeneralRequest(url, method, payload, api, clientId, refreshedAccessToken, true);
+            }
+
             var request = WebRequest.CreateHttp(url);
             if (string.IsNullOrEmpty(clientId) && string.IsNullOrEmpty(accessToken))
                 throw new InvalidCredentialException("A Client-Id or OAuth token is required to use the Twitch API. If you previously set them in InitializeAsync, please be sure to await the method.");

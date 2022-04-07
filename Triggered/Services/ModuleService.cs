@@ -4,7 +4,9 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Immutable;
 using System.Reflection;
+using System.Runtime.Loader;
 using Triggered.Extensions;
 using Triggered.Models;
 
@@ -55,10 +57,7 @@ namespace Triggered.Services
                 (nameof(IDbContextFactory<TriggeredDbContext>), typeof(IDbContextFactory<TriggeredDbContext>), dbContextFactory)
             });
 
-            SupportedEvents.Add("ModuleService.OnCustomEvent", "Custom");
-            EventArgumentTypes.Add("ModuleService.OnCustomEvent", typeof(CustomEventArgs));
-            SupportedArgumentTypes.Add("CustomEventArgs", typeof(CustomEventArgs));
-            RegisterEvents(this);
+            //TODO: Create generic module execution method.
         }
 
         public void IntializeNetObjects()   
@@ -124,6 +123,14 @@ namespace Triggered.Services
         #endregion
 
         #region Public Methods
+
+        public void RegisterCustomEvent()
+        {
+            SupportedEvents.Add("ModuleService.OnCustomEvent", "Custom");
+            EventArgumentTypes.Add("ModuleService.OnCustomEvent", typeof(CustomEventArgs));
+            SupportedArgumentTypes.Add("CustomEventArgs", typeof(CustomEventArgs));
+            RegisterEvents(this);
+        }
 
         public void RegisterParameterObjects(IEnumerable<(string name, Type type, object instance)> parameterObjects)
         {
@@ -252,72 +259,82 @@ namespace Triggered.Services
 
             CompileCode(module.Code, out CSharpCompilation compilation, out SemanticModel semanticModel, out IEnumerable<MethodDeclarationSyntax> methodDeclarationSyntaxes);
 
-            MethodDeclarationSyntax? methodDeclarationSyntax = methodDeclarationSyntaxes.FirstOrDefault(method => method.Identifier.Text.Equals(module.EntryMethod));
-
-            if (methodDeclarationSyntax != null)
+            try
             {
-                List<Type> parameterTypes = new();
-                foreach (ParameterSyntax parameterSyntax in methodDeclarationSyntax.ParameterList.Parameters)
+                MethodDeclarationSyntax? methodDeclarationSyntax = methodDeclarationSyntaxes.FirstOrDefault(method => method.Identifier.Text.Equals(module.EntryMethod));
+
+                if (methodDeclarationSyntax != null)
                 {
-                    string? typeName = semanticModel.GetDeclaredSymbol(parameterSyntax)?.Type.Name;
-                    if (typeName == null || !SupportedArgumentTypes.TryGetValue(typeName, out Type? parameterType) || parameterType == null)
-                        compilationErrors.Add($"Module entry method parameter type \"{typeName ?? "N/A"}\" is not a supported type.");
-                    else
-                        parameterTypes.Add(parameterType);
-                }
-
-                IMethodSymbol? methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclarationSyntax);
-                INamedTypeSymbol? returnTypeSymbol = (INamedTypeSymbol?)methodSymbol?.ReturnType;
-                INamedTypeSymbol? returnTypeArgumentSymbol = (INamedTypeSymbol?)returnTypeSymbol?.TypeArguments.FirstOrDefault();
-
-                if (!compilationErrors.Any() &&
-                    methodSymbol != null &&
-                    returnTypeSymbol != null &&
-                    returnTypeSymbol.Name.Equals("Task") &&
-                    @returnTypeSymbol.TypeArguments.Length == 1 &&
-                    returnTypeArgumentSymbol != null &&
-                    returnTypeArgumentSymbol.Name.Equals("Boolean"))
-                {
-                    using var memoryStream = new MemoryStream();
-                    EmitResult result = compilation.Emit(memoryStream);
-
-                    IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic =>
-                        diagnostic.IsWarningAsError ||
-                        diagnostic.Severity == DiagnosticSeverity.Error);
-                    compilationErrors.AddRange(failures.Select(failure => $"{failure.Id}: {failure.GetMessage()}"));
-
-                    IEnumerable<Diagnostic> warnings = result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning);
-                    compilationWarnings.AddRange(warnings.Select(failure => $"{failure.Id}: {failure.GetMessage()}"));
-
-                    if (result.Success)
+                    List<Type> parameterTypes = new();
+                    foreach (ParameterSyntax parameterSyntax in methodDeclarationSyntax.ParameterList.Parameters)
                     {
-                        memoryStream.Seek(0, SeekOrigin.Begin);
-                        Assembly assembly = Assembly.Load(memoryStream.ToArray());
-
-                        Type? methodType = assembly.GetType(methodSymbol.ContainingSymbol.ToDisplayString());
-
-                        if (methodType != null)
-                        {
-                            object? classInstance = Activator.CreateInstance(methodType);
-
-                            compiledModule = new CompiledModule(
-                                module,
-                                parameterTypes,
-                                (object[] arguments) => (Task<bool>?)methodType.InvokeMember(module.EntryMethod,
-                                    BindingFlags.Default | BindingFlags.InvokeMethod,
-                                null,
-                                classInstance,
-                                arguments) ?? Task.FromResult(false));
-                        }
+                        string? typeName = semanticModel.GetDeclaredSymbol(parameterSyntax)?.Type.Name;
+                        if (typeName == null || !SupportedArgumentTypes.TryGetValue(typeName, out Type? parameterType) || parameterType == null)
+                            compilationErrors.Add($"Module entry method parameter type \"{typeName ?? "N/A"}\" is not a supported type.");
                         else
-                            compilationErrors.Add($"Module entry method type \"{methodSymbol.ToDisplayString()}\" was not able to discerned from the code.");
+                            parameterTypes.Add(parameterType);
                     }
+
+                    IMethodSymbol? methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclarationSyntax);
+                    INamedTypeSymbol? returnTypeSymbol = (INamedTypeSymbol?)methodSymbol?.ReturnType;
+                    INamedTypeSymbol? returnTypeArgumentSymbol = (INamedTypeSymbol?)returnTypeSymbol?.TypeArguments.FirstOrDefault();
+
+                    if (!compilationErrors.Any() &&
+                        methodSymbol != null &&
+                        returnTypeSymbol != null &&
+                        returnTypeSymbol.Name.Equals("Task") &&
+                        @returnTypeSymbol.TypeArguments.Length == 1 &&
+                        returnTypeArgumentSymbol != null &&
+                        returnTypeArgumentSymbol.Name.Equals("Boolean"))
+                    {
+                        using var memoryStream = new MemoryStream();
+                        EmitResult result = compilation.Emit(memoryStream);
+
+                        IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic =>
+                            diagnostic.IsWarningAsError ||
+                            diagnostic.Severity == DiagnosticSeverity.Error);
+                        compilationErrors.AddRange(failures.Select(failure => $"{failure.Id}: {failure.GetMessage()}"));
+
+                        IEnumerable<Diagnostic> warnings = result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning);
+                        compilationWarnings.AddRange(warnings.Select(failure => $"{failure.Id}: {failure.GetMessage()}"));
+
+                        if (result.Success)
+                        {
+                            memoryStream.Seek(0, SeekOrigin.Begin);
+                            Assembly assembly = Assembly.Load(memoryStream.ToArray());
+
+                            Type? methodType = assembly.GetType(methodSymbol.ContainingSymbol.ToDisplayString());
+
+                            if (methodType != null)
+                            {
+                                object? classInstance = Activator.CreateInstance(methodType);
+
+                                compiledModule = new CompiledModule(
+                                    module,
+                                    parameterTypes,
+                                    (object[] arguments) => (Task<bool>?)methodType.InvokeMember(module.EntryMethod,
+                                        BindingFlags.Default | BindingFlags.InvokeMethod,
+                                    null,
+                                    classInstance,
+                                    arguments) ?? Task.FromResult(false));
+                            }
+                            else
+                                compilationErrors.Add($"Module entry method type \"{methodSymbol.ToDisplayString()}\" was not able to discerned from the code.");
+                        }
+                    }
+                    else
+                        compilationErrors.Add($"Module entry method return type needs to be of type \"Task<bool>\".");
                 }
                 else
-                    compilationErrors.Add($"Module entry method return type needs to be of type \"Task<bool>\".");
+                    compilationErrors.Add($"Module entry method \"{module.EntryMethod}\" was not found in the code.");
             }
-            else
-                compilationErrors.Add($"Module entry method \"{module.EntryMethod}\" was not found in the code.");
+            finally
+            {
+                methodDeclarationSyntaxes = null!;
+                semanticModel = null!;
+                compilation = null!;
+                GC.Collect();
+            }        
 
             return (compiledModule, compilationWarnings, compilationErrors);
         }
@@ -328,22 +345,32 @@ namespace Triggered.Services
 
             CompileCode(code, out CSharpCompilation compilation, out SemanticModel semanticModel, out IEnumerable<MethodDeclarationSyntax> methodDeclarationSyntaxes);
 
-            foreach (MethodDeclarationSyntax methodDeclarationSyntax in methodDeclarationSyntaxes)
+            try
             {
-                List<Type> parameterTypes = new();
-                foreach (ParameterSyntax parameterSyntax in methodDeclarationSyntax.ParameterList.Parameters)
+                foreach (MethodDeclarationSyntax methodDeclarationSyntax in methodDeclarationSyntaxes)
                 {
-                    string? typeName = semanticModel.GetDeclaredSymbol(parameterSyntax)?.Type.Name;
-                    if (typeName != null && 
-                        SupportedArgumentTypes.TryGetValue(typeName, out Type? parameterType) &&
-                        parameterType != null)
-                        returnEvent = EventArgumentTypes.FirstOrDefault(eventArgumentType => eventArgumentType.Value.Equals(parameterType)).Key;                    
-                    else
-                        continue;
+                    List<Type> parameterTypes = new();
+                    foreach (ParameterSyntax parameterSyntax in methodDeclarationSyntax.ParameterList.Parameters)
+                    {
+                        string? typeName = semanticModel.GetDeclaredSymbol(parameterSyntax)?.Type.Name;
+                        if (typeName != null && 
+                            SupportedArgumentTypes.TryGetValue(typeName, out Type? parameterType) &&
+                            parameterType != null)
+                            returnEvent = EventArgumentTypes.FirstOrDefault(eventArgumentType => eventArgumentType.Value.Equals(parameterType)).Key;                    
+                        else
+                            continue;
 
-                    if (!string.IsNullOrEmpty(returnEvent))
-                        return returnEvent;
+                        if (!string.IsNullOrEmpty(returnEvent))
+                            return returnEvent;
+                    }
                 }
+            }
+            finally
+            {
+                methodDeclarationSyntaxes = null!;
+                semanticModel = null!;
+                compilation = null!;
+                GC.Collect();
             }
 
             return returnEvent;
@@ -471,7 +498,7 @@ namespace Triggered.Services
         }
 
         private void CompileCode(string moduleCode, out CSharpCompilation compilation, out SemanticModel semanticModel, out IEnumerable<MethodDeclarationSyntax> methodDeclarationSyntaxes)
-        {
+        {        
             SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(moduleCode);
 
             string assemblyName = Path.GetRandomFileName();
@@ -491,7 +518,7 @@ namespace Triggered.Services
                 assemblyName,
                 syntaxTrees: new[] { syntaxTree },
                 references: references,
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, metadataReferenceResolver: new MissingResolver()));
 
             methodDeclarationSyntaxes = compilation.SyntaxTrees
                 .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().ToList());
@@ -501,4 +528,41 @@ namespace Triggered.Services
 
         #endregion
     }
+
+    public class MissingResolver : MetadataReferenceResolver
+    {
+        public override bool Equals(object? other)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool ResolveMissingAssemblies => false;
+
+        public override ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string? baseFilePath, MetadataReferenceProperties properties)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class CollectibleAssemblyLoadContext : AssemblyLoadContext
+    {
+        public CollectibleAssemblyLoadContext() : base(isCollectible: true)
+        { }
+
+        protected override Assembly? Load(AssemblyName assemblyName)
+        {
+            return null;
+        }
+
+        public void Dispose()
+        {
+            Unload();
+        }
+    }
+
 }

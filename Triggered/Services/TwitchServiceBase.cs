@@ -258,6 +258,7 @@ namespace Triggered.Services
                 else
                 {
                     await _messagingService.AddMessage($"Could not refresh Twitch{_settingModifier} token!", MessageCategory.Authentication, LogLevel.Error);
+                    await Logout();
                     return null;
                 }
             }
@@ -270,7 +271,6 @@ namespace Triggered.Services
             await TwitchAPI.Auth.RevokeAccessTokenAsync();
 
             using TriggeredDbContext triggeredDbContext = await _dbContextFactory.CreateDbContextAsync();
-
 
             triggeredDbContext.Settings.SetSetting($"Twitch{_settingModifier}AccessToken", string.Empty);
             triggeredDbContext.Settings.SetSetting($"Twitch{_settingModifier}RefreshToken", string.Empty);

@@ -4,7 +4,6 @@
 
 <PageTitle>TR⚡GGERED - Home</PageTitle>
 
-
 <h3 class="text-white mb-3">Services</h3>
 
 <div class="row">
@@ -38,7 +37,7 @@
             <img class="img-shadow" height="20" src="assets/obs-studio.ico">
         </button>
     </div>
-    <div class="col-auto mb-3" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-trigger="hover"
+@*    <div class="col-auto mb-3" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-trigger="hover"
         data-bs-original-title="@discordServiceTitle" aria-label="@discordServiceTitle">
         <button type="button" 
             disabled=@(DiscordService.IsActive ==  null ? true : false) 
@@ -46,7 +45,7 @@
             @onclick=@(async () => await ((DiscordService.IsActive ?? false) ? (Func<Task>)DiscordService.StopAsync : DiscordService.StartAsync)())>
             <img class="img-shadow" height="20" width="20" src="assets/DiscordLogoColor.svg" />
         </button>   
-    </div>
+    </div>*@
 </div>
 
 <hr class="text-white" />

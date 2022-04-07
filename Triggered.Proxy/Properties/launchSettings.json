@@ -3,23 +3,20 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:13649",
-      "sslPort": 44319
+      "applicationUrl": "http://localhost:58329",
+      "sslPort": 44387
     }
   },
   "profiles": {
-    "Triggered": {
+    "Triggered.Proxy": {
       "commandName": "Project",
-      "launchBrowser": true,
-      "launchUrl": "https://localhost:7121",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "",
+      "applicationUrl": "https://localhost:7266;http://localhost:5266",
       "dotnetRunMessages": true
     },
     "IIS Express": {
-
       "commandName": "IISExpress",
       "launchBrowser": true,
       "environmentVariables": {

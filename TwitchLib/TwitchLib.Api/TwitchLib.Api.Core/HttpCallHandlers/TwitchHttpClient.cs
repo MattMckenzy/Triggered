@@ -19,6 +19,7 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
         private readonly HttpClient _http;
         private readonly Func<Task<string>> _tokenRefreshDelegate;
         private readonly Func<Exception, Task> _webExceptionHandler;
+        private DateTime _lastRefresh = DateTime.MinValue;
 
         /// <summary>
         /// Creates an Instance of the TwitchHttpClient Class.
@@ -43,6 +44,13 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
 
         public async Task<KeyValuePair<int, string>> GeneralRequest(string url, string method, string payload = null, ApiVersion api = ApiVersion.V5, string clientId = null, string accessToken = null, bool refreshedToken = false)
         {
+            if (!string.IsNullOrEmpty(accessToken) && !refreshedToken && DateTime.Now > _lastRefresh + TimeSpan.FromHours(1))
+            {
+                _lastRefresh = DateTime.Now;
+                string refreshedAccessToken = await _tokenRefreshDelegate();
+                return await GeneralRequest(url, method, payload, api, clientId, refreshedAccessToken, true);
+            }
+
             var request = new HttpRequestMessage
             {
                 RequestUri = new Uri(url),
@@ -66,12 +74,11 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
                 authPrefix = "Bearer";
             }
             else if (api != ApiVersion.Void)
-            {
                 request.Headers.Add(HttpRequestHeader.Accept.ToString(), $"application/vnd.twitchtv.v{(int)api}+json");
-            }
+            
             if (!string.IsNullOrEmpty(accessToken))
                 request.Headers.Add(HttpRequestHeader.Authorization.ToString(), $"{authPrefix} {Common.Helpers.FormatOAuth(accessToken)}");
-
+            
             if (payload != null)
                 request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
 
