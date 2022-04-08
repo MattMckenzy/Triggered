@@ -56,7 +56,7 @@
         await base.OnAfterRenderAsync(firstRender);
 
         if (!string.IsNullOrWhiteSpace(AuthorizationCode) && !await TwitchChatService.GetAccessToken(AuthorizationCode, $"{TriggeredDbContext.Settings.GetSetting("Host")}/auth/chatredirect", State))
-            await TwitchChatService.Logout();
+            await TwitchChatService.Logout();        
         
         if (!string.IsNullOrWhiteSpace(Error) && !string.IsNullOrWhiteSpace(ErrorDescription))
             await MessagingService.AddMessage($"Could not login to TwitchChat account: {Error} - {ErrorDescription}.", MessageCategory.Authentication, LogLevel.Error);

@@ -106,7 +106,9 @@
 
     private async void OnLoginClick()
     {
-        if (await TwitchService.Initialize())
+        bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchChatUseSecondAccount"), out bool useSecondAccount);
+
+        if (await TwitchService.Initialize() && !useSecondAccount && await TwitchChatService.Initialize())
         {            
             string? authCodeUri = await TwitchService.GetAuthorizationCodeUrl($"{DbContextFactory.CreateDbContext().Settings.GetSetting("Host")}/auth/redirect");
             if (authCodeUri != null)
@@ -127,6 +129,8 @@
             ChoiceColour = "danger",
             ChoiceAction = async () => {
                 await TwitchService.Logout();
+                if (!UseSecondAccount)
+                    await TwitchChatService.Logout();
                 NavigationManager.NavigateTo("/", true); 
             }
         });

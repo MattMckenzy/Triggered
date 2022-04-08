@@ -115,9 +115,10 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
+
+// TODO: Add API to trigger module tests.
 
 app.Run();
 

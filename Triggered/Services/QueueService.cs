@@ -1,24 +1,30 @@
 ﻿using System.Collections.Concurrent;
+using Triggered.Models;
 
 namespace Triggered.Services
 {
     public class QueueService
     {
-        private readonly ConcurrentDictionary<string, (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<Func<Task<bool>>>)> Queues = new();
+        private readonly ConcurrentDictionary<string, (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<(Func<Task<bool>>, string?)>)> Queues = new();
 
-        public async Task Add(string queueKey, Func<Task<bool>> func)
+        public MessagingService MessagingService { get; }
+
+        public QueueService(MessagingService messagingService)
         {
-            ConcurrentQueue<Func<Task<bool>>> newQueue = new();
-            newQueue.Enqueue(func);
+            MessagingService = messagingService;
+        }
+
+        public async Task Add(string queueKey, Func<Task<bool>> func, string? exceptionPreamble = null)
+        {
+            ConcurrentQueue<(Func<Task<bool>>, string?)> newQueue = new();
+            newQueue.Enqueue((func, exceptionPreamble));
 
             SemaphoreSlim newSemaphore = new(1);
 
-            if (!Queues.TryAdd(queueKey, (new(), new SemaphoreSlim(1), newQueue)) && Queues.TryGetValue(queueKey, out (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<Func<Task<bool>>>) queue))
+            if (!Queues.TryAdd(queueKey, (new(), new SemaphoreSlim(1), newQueue)) && Queues.TryGetValue(queueKey, out (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<(Func<Task<bool>>, string?)>) queue))
             {
                 await newSemaphore.WaitAsync();
-
-                queue.Item3.Enqueue(func);
-
+                queue.Item3.Enqueue((func, exceptionPreamble));
                 newSemaphore.Release();
             }   
 
@@ -27,7 +33,7 @@ namespace Triggered.Services
 
         private Task RunQueue(string queueKey)
         {
-            if (Queues.TryGetValue(queueKey, out (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<Func<Task<bool>>>) queue))
+            if (Queues.TryGetValue(queueKey, out (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<(Func<Task<bool>>, string?)>) queue))
             {
                 _ = Task.Run(async () => 
                 {
@@ -35,10 +41,18 @@ namespace Triggered.Services
 
                     try
                     {
-                        while (queue.Item3.TryDequeue(out Func<Task<bool>>? func))
+                        while (queue.Item3.TryDequeue(out (Func<Task<bool>>, string?) func))
                         {
-                             if (func != null && !queue.Item1.IsCancellationRequested && !await func())
-                                break;
+                            try
+                            {
+                                if (!queue.Item1.IsCancellationRequested && !await func.Item1())
+                                    break;
+                            }
+                            catch (Exception ex)
+                            {
+                                string exceptionPreamble = func.Item2 ?? $"Exception in queue \"{queueKey}\"";
+                                await MessagingService.AddMessage($"{exceptionPreamble}: {ex.Message}", MessageCategory.Module, LogLevel.Error);
+                            }
                         }
                     }
                     finally
@@ -57,7 +71,7 @@ namespace Triggered.Services
 
         public Task Clear(string queueKey)
         {
-            if (Queues.TryRemove(queueKey, out (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<Func<Task<bool>>>) queue))
+            if (Queues.TryRemove(queueKey, out (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<(Func<Task<bool>>, string?)>) queue))
             {
                 queue.Item1.Cancel();
             }

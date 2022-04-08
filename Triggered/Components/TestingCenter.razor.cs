@@ -246,7 +246,7 @@ namespace Triggered.Components
 
             EventTests = triggeredDbContext.EventTests.ToList();
             EventTestNames = EventTests.OrderBy(eventTest => eventTest.Name).ToDictionary(eventTest => eventTest.Id.ToString()!, eventTest => eventTest.Name);
-            CategoryEventTests = EventTests.OrderBy(eventTest => eventTest.Name).ThenBy(eventTest => eventTest.Event).GroupBy(module => module.Event)
+            CategoryEventTests = EventTests.OrderBy(eventTest => eventTest.Event).ThenBy(eventTest => eventTest.Name).GroupBy(module => module.Event)
                 .ToDictionary(category => category.Key, category => category.Select(module => module.Id.ToString()!));
 
             await InvokeAsync(StateHasChanged);

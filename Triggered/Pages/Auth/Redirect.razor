@@ -23,6 +23,9 @@
     private TwitchService TwitchService { get; set; } = null!;
 
     [Inject]
+    private TwitchChatService TwitchChatService { get; set; } = null!;
+
+    [Inject]
     private MessagingService MessagingService { get; set; } = null!;
 
     [Inject]
@@ -56,7 +59,11 @@
         await base.OnAfterRenderAsync(firstRender);
 
         if (!string.IsNullOrWhiteSpace(AuthorizationCode) && !await TwitchService.GetAccessToken(AuthorizationCode, $"{TriggeredDbContext.Settings.GetSetting("Host")}/auth/redirect", State))
-            await TwitchService.Logout();
+        {
+            await TwitchService.Logout();            
+            if (bool.TryParse(TriggeredDbContext.Settings.GetSetting("TwitchChatUseSecondAccount"), out bool useSecondAccount) && !useSecondAccount)
+                await TwitchChatService.Logout();                      
+        }
         
         if (!string.IsNullOrWhiteSpace(Error) && !string.IsNullOrWhiteSpace(ErrorDescription))
             await MessagingService.AddMessage($"Could not login to Twitch account: {Error} - {ErrorDescription}.", MessageCategory.Authentication, LogLevel.Error);

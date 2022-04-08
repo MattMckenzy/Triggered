@@ -82,9 +82,13 @@ namespace Triggered.Components
             if (propertyName == nameof(Module.Event) && value is string valueString && string.IsNullOrWhiteSpace(valueString))
                 return;
 
-            typeof(Module).GetProperty(propertyName)!.SetValue(CurrentModule, value);
+            if (propertyName.Equals(nameof(Module.ExecutionOrder)))
+                typeof(Module).GetProperty(propertyName)!.SetValue(CurrentModule, int.TryParse((string)value, out int intValue) ? intValue : 0);
+            else
+                 typeof(Module).GetProperty(propertyName)!.SetValue(CurrentModule, value);
 
-            if (new string[] { nameof(CurrentModule.Event), nameof(CurrentModule.EntryMethod) }.Contains(propertyName))
+
+            if (new string[] { nameof(Module.Event), nameof(Module.EntryMethod) }.Contains(propertyName))
                 CompileCode();
 
             await UpdatePageState();

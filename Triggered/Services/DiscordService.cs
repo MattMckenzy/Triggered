@@ -52,6 +52,7 @@ namespace Triggered.Services
                 (nameof(DiscordService), typeof(DiscordService), this)
             });
 
+            // TODO: Fix discord service initialization.
             ModuleService.InitializeSupportedEventsAndParameters(DiscordClient);
             ModuleService.InitializeSupportedEventsAndParameters(InteractionService);
             ModuleService.InitializeSupportedEventsAndParameters(CommandService);

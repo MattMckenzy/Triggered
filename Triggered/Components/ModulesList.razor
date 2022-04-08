@@ -73,13 +73,13 @@
                 @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentModule.IsEnabled), changeEventArgs.Value!))>
         </div> 
         <div class="d-flex flex-wrap mb-3">
-            <button type="button" class="btn btn-@(CompiledModule == null ? "danger" : "primary") me-3" data-bs-toggle="modal" data-bs-target="#codeModal" id="codeButton" @onclick=ReplaceCodeTemplates>
+            <button type="button" class="btn btn-@(CompiledModule == null ? "danger" : "primary") mb-2 me-3" data-bs-toggle="modal" data-bs-target="#codeModal" id="codeButton" @onclick=ReplaceCodeTemplates>
                 Edit Code
             </button>
-            <button type="button" class="btn btn-sm btn-danger bi bi-eraser-fill me-3" data-bs-dismiss="modal" @onclick=ResetCode></button>
+            <button type="button" class="btn btn-sm btn-danger bi bi-eraser-fill mb-2 me-3" data-bs-dismiss="modal" @onclick=ResetCode></button>
             @if (ExternalModules.Values.Where(module => module.Event.Equals(CurrentModule.Event) || string.IsNullOrWhiteSpace(module.Event)).Any())
             {                 
-                <div class="me-3">
+                <div class="mb-2 me-3">
                 <FilterSelect Selected=@(ExternalModules.First().Key)
                     Options=@(
                     ExternalModules.Where(externalModule => externalModule.Value.Event.Equals(CurrentModule.Event) || string.IsNullOrWhiteSpace(externalModule.Value.Event))

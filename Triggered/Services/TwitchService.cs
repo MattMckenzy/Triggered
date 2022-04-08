@@ -6,7 +6,6 @@ using TwitchLib.Api.Core.Enums;
 using TwitchLib.Api.Helix.Models.EventSub;
 using TwitchLib.EventSub.Webhooks.Core;
 using TwitchLib.PubSub;
-using TwitchLib.PubSub.Events;
 
 namespace Triggered.Services
 {

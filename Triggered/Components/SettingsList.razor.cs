@@ -270,7 +270,7 @@ namespace Triggered.Components
 
                 if (CurrentSetting.Key.Equals("TwitchChatUseSecondAccount", StringComparison.InvariantCultureIgnoreCase))
                     await TwitchChatService.Initialize();
-
+                
                 CurrentSettingKeyLocked = true;
 
                 await UpdatePageState();

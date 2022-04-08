@@ -49,8 +49,7 @@ namespace Triggered.Services
 
         public override Task<bool> Initialize(string settingModifier = "Chat")
         {
-            _ = bool.TryParse(_dbContextFactory.CreateDbContext().Settings.GetSetting("TwitchChatUseSecondAccount"), out bool useSecondAccount);
-            if (!useSecondAccount)
+            if (bool.TryParse(_dbContextFactory.CreateDbContext().Settings.GetSetting("TwitchChatUseSecondAccount"), out bool useSecondAccount) && !useSecondAccount)
                 settingModifier = string.Empty;
 
             return base.Initialize(settingModifier);

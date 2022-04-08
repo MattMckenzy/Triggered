@@ -97,7 +97,7 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
                 {
                     await HandleWebException(ex);
                 }
-                catch (Exception exception) when (exception is UnauthorizedException)
+                catch (UnauthorizedException exception)
                 {
                     if (refreshedToken == false && _tokenRefreshDelegate != null && !url.Contains("oauth2/validate"))
                     {
@@ -107,6 +107,8 @@ namespace TwitchLib.Api.Core.HttpCallHandlers
                     else
                         throw exception;
                 }
+
+                throw ex;
             }
 
             return new KeyValuePair<int, string>(0, null);

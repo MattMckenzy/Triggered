@@ -35,7 +35,7 @@ namespace Triggered.Services
         public TwitchAPI TwitchAPI { get; private set; } = new();
 
         public async Task<bool> IsInitialized()
-        { 
+        {
                 return !string.IsNullOrWhiteSpace(await TwitchAPI.Settings.GetClientIdAsync()) &&
                    !string.IsNullOrWhiteSpace(await TwitchAPI.Settings.GetClientSecretAsync());            
         }
@@ -58,9 +58,9 @@ namespace Triggered.Services
         public User? User { get; set; }
         public ChannelInformation? ChannelInformation { get; set; }
 
-        public string? ChannelName { get; set; }
-        public string? UserName { get; set; }
-              
+        public string ChannelName { get { return _dbContextFactory.CreateDbContext().Settings.GetSetting($"Twitch{_settingModifier}ChannelName"); } }
+        public string UserName { get { return _dbContextFactory.CreateDbContext().Settings.GetSetting($"Twitch{_settingModifier}UserName"); } }
+
         #endregion
 
         #region Constructor
@@ -83,9 +83,6 @@ namespace Triggered.Services
             _settingModifier = settingModifier;
 
             using TriggeredDbContext triggeredDbContext = await _dbContextFactory.CreateDbContextAsync();
-
-            ChannelName = triggeredDbContext.Settings.GetSetting($"Twitch{_settingModifier}ChannelName");
-            UserName = triggeredDbContext.Settings.GetSetting($"Twitch{_settingModifier}UserName");
 
             TwitchAPI = new(settings: new ApiSettings(
                 async () => {
@@ -275,9 +272,6 @@ namespace Triggered.Services
             triggeredDbContext.Settings.SetSetting($"Twitch{_settingModifier}AccessToken", string.Empty);
             triggeredDbContext.Settings.SetSetting($"Twitch{_settingModifier}RefreshToken", string.Empty);
             await triggeredDbContext.SaveChangesAsync();
-
-            UserName = null;
-            ChannelName = null;
 
             User = null;
             ChannelInformation = null;
