@@ -1,4 +1,5 @@
-﻿using OBSWebsocketDotNet;
+﻿#nullable enable
+using OBSWebsocketDotNet;
 using OBSWebsocketDotNet.Types;
 using System;
 using System.IO;
@@ -20,7 +21,7 @@ async void OBSWebsocket_Connected(object? sender, EventArgs e)
     CancellationTokenSource cancellationTokenSource = new();
     cancellationTokenSource.CancelAfter(TimeSpan.FromMinutes(5));
 
-    async void OBSWebsocket_MediaEnded(object sender, MediaEventArgs e)
+    async void OBSWebsocket_MediaEnded(object? sender, MediaEventArgs e)
     {
         cancellationTokenSource.Cancel();
 
@@ -70,10 +71,6 @@ async void OBSWebsocket_Connected(object? sender, EventArgs e)
     {
         OBSWebsocket.MediaEnded -= OBSWebsocket_MediaEnded;
     }
-}
-
-void OBSWebsocket_MediaStarted(object? sender, MediaEventArgs e)
-{
 }
 
 Console.WriteLine("Press any key to close.");

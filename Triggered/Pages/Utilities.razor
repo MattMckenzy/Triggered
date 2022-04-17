@@ -1,11 +1,12 @@
-﻿@page "/modules"
+﻿@page "/utilities"
 
-<PageTitle>TR⚡GGERED - Modules</PageTitle>
+<PageTitle>TR⚡GGERED - Utilities</PageTitle>
 
 <ModalPrompt @ref=ModalPromptReference></ModalPrompt>
 
 <div class="d-flex w-100 align-items-center justify-content-between">
-    <h3 class="text-white mb-3">Modules</h3>    
+    <h3 class="text-white mb-3">Utilities</h3>
+
     @{
         string compileButtonTooltip;
         if (IsCompiling)
@@ -14,7 +15,7 @@
         }
         else
         {
-            compileButtonTooltip = "Recompile all modules.";            
+            compileButtonTooltip = "Recompile all utilities.";            
         }
 
     }     
@@ -26,7 +27,7 @@
     </div>
 </div>
 
-<ModulesList></ModulesList>
+<UtilitiesList></UtilitiesList>
 
 @code{
     [Inject]
@@ -55,7 +56,7 @@
         {
             try
             {
-                ModuleService.CompileAllModules();
+                await ModuleService.CompileUtilities();
             }
             finally
             {
@@ -63,7 +64,7 @@
                 await ModalPromptReference.ShowModalPrompt(new()
                     {
                         Title = "Succesfully recompiled!",
-                        Message = $"Successfully recompiled all available modules.",
+                        Message = $"Successfully recompiled all available utilities.",
                         CancelChoice = "Dismiss"
                     });
                 await InvokeAsync(StateHasChanged);

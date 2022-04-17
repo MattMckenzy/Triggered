@@ -5,6 +5,7 @@ using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using Triggered.Extensions;
 using Triggered.Models;
+using static Discord.WebSocket.DiscordSocketClient;
 
 namespace Triggered.Services
 {
@@ -52,7 +53,6 @@ namespace Triggered.Services
                 (nameof(DiscordService), typeof(DiscordService), this)
             });
 
-            // TODO: Fix discord service initialization.
             ModuleService.InitializeSupportedEventsAndParameters(DiscordClient);
             ModuleService.InitializeSupportedEventsAndParameters(InteractionService);
             ModuleService.InitializeSupportedEventsAndParameters(CommandService);
@@ -90,7 +90,8 @@ namespace Triggered.Services
                     DiscordClient.Connected += DiscordClient_Connected;
                     DiscordClient.Disconnected += DiscordClient_Disconnected;
 
-                    _ = Task.Run(async () => await DiscordClient.LoginAsync(TokenType.Bot, discordBotToken));
+                    await DiscordClient.LoginAsync(TokenType.Bot, discordBotToken);
+                    await DiscordClient.StartAsync();
 
                     while (!CancellationTokenSource.Token.IsCancellationRequested)
                     {
@@ -133,7 +134,7 @@ namespace Triggered.Services
 
         private int disconnections = 0;
         private DateTime lastDisconnection = DateTime.MinValue;
-        private async void DiscordClient_Disconnected(object? _, Exception exception)
+        private async void DiscordClient_Disconnected(object? _, DisconnectedArguments arguments)
         {
             if (!CancellationTokenSource.IsCancellationRequested && DateTime.Now - lastDisconnection < TimeSpan.FromMinutes(1) && disconnections >= 3)
             {
@@ -143,7 +144,7 @@ namespace Triggered.Services
             else if (!CancellationTokenSource.IsCancellationRequested)
             {
                 disconnections++;
-                await MessagingService.AddMessage($"Disconnected from Discord websocket: \"{exception.Message}\". Connection retrying...", MessageCategory.Service, LogLevel.Warning);
+                await MessagingService.AddMessage($"Disconnected from Discord websocket: \"{arguments.Exception.Message}\". Connection retrying...", MessageCategory.Service, LogLevel.Warning);
 
 
                 using TriggeredDbContext triggeredDbContext = await DbContextFactory.CreateDbContextAsync();

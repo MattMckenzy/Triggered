@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using System.Net;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -78,7 +77,7 @@ using (IServiceScope scope = app.Services.CreateAsyncScope())
     DiscordService discordService = scope.ServiceProvider.GetRequiredService<DiscordService>();
 
     ModuleService moduleService = scope.ServiceProvider.GetRequiredService<ModuleService>();
-    moduleService.RegisterCustomEvent();
+    await moduleService.AddUtilities();
 
     if (triggeredDbContext.Settings.GetSetting("Autostart").Equals("true", StringComparison.InvariantCultureIgnoreCase))
     {
@@ -115,10 +114,9 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
-
-// TODO: Add API to trigger module tests.
 
 app.Run();
 

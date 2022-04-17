@@ -254,6 +254,7 @@ namespace Triggered.Components
 
         private bool TestJson()
         {
+            // TODO: Test and fix discord json event arguments.
             InvalidJsonMessages.Clear();
 
             if (CurrentEventTest?.JsonData == null)

@@ -1,0 +1,72 @@
+﻿@using Triggered.Models
+
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+<div class="modal fade" id="codeModal" tabindex="-1" aria-hidden="true" data-backdrop="false">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <img src="assets/csharp.png" height="20" class="rounded me-2" alt="C#">
+                <strong class="modal-title me-2">Code Editor</strong>
+                <span class="me-2">@(CurrentUtility.Name)</span>   
+                <button type="button" class="btn-close" data-bs-dismiss="modal" @onclick=CompileCode></button>
+            </div>
+            <div class="modal-body m-0 p-0">
+                <div @ref=CodeEditorRef id="codeEditor"></div>
+            </div>
+            <div class="modal-footer bg-dark text-white h6 justify-content-start align-content-start" id="codeAnalyser">
+                <p>@CodeAnalysisResults</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="utilities">
+    
+    @if (UtilityNames != null)
+    {        
+        <EntitySidebar Title="Utilities"
+            Items=@UtilityNames
+            Categories=null
+            CreateCallback=CreateUtility
+            DeleteCallback=DeleteUtility
+            LoadCallback=LoadUtility
+            CurrentItem=@CurrentUtility.Id.ToString()></EntitySidebar>
+    }
+
+    <div class="main mb-3">
+        <div class="mb-3">
+            <label for="utilityName" class="form-label text-white">Name</label>
+            <input type="text" class="form-control @(string.IsNullOrWhiteSpace(CurrentUtility.Name) ? "is-invalid" : "is-valid")" id="utilityName" value="@CurrentUtility.Name" 
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentUtility.Name), changeEventArgs.Value!)) required>
+        </div>    
+        <div class="mb-3">
+            <label for="isEnabled" class="form-check-label text-white">Is Enabled</label>
+            <input type="checkbox" class="form-check-input" id="isEnabled" checked=@CurrentUtility.IsEnabled 
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentUtility.IsEnabled), changeEventArgs.Value!))>
+        </div> 
+        <div class="d-flex flex-wrap mb-3">
+            <button type="button" class="btn btn-@(IsUtilityValid ? "primary" : "danger") mb-2 me-3" data-bs-toggle="modal" data-bs-target="#codeModal" id="codeButton">
+                Edit Code
+            </button>
+            <button type="button" class="btn btn-sm btn-danger bi bi-eraser-fill mb-2 me-3" data-bs-dismiss="modal" @onclick=ResetCode></button>
+            @if (ExternalUtilities.Any())
+            {                 
+                <div class="mb-2 me-3">
+                <FilterSelect
+                    Options=@(ExternalUtilities.ToDictionary(externalUtility => externalUtility.Key, externalUtility => externalUtility.Key))
+                    Categories=null
+                    PlaceholderText="External Utilities..."
+                    NoOptionsText="No Utilities found..."
+                    Validate=false
+                    OnChange=@(async (ChangeEventArgs changeEventArgs) => await SetExternalUtility((string)changeEventArgs.Value!))></FilterSelect>
+                </div>            
+            }
+        </div>
+        <div>
+            <button class="btn btn-success @(!CurrentUtilityIsValid || !CurrentUtilityIsDirty ? "disabled" : string.Empty)" @onclick="SaveUtility" disabled="@(!CurrentUtilityIsValid || !CurrentUtilityIsDirty)">
+                Save Utility
+            </button>
+        </div>
+    </div>
+</div>

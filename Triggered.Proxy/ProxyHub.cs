@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
-using System.Collections.Concurrent;
+﻿using Microsoft.AspNetCore.SignalR;
 
 namespace Triggered.Proxy
 {
@@ -16,7 +13,7 @@ namespace Triggered.Proxy
 
         public async Task<string> GetSecret(int secretSize)
         {
-            return await SecretManager.GetSecret(secretSize, Context.ConnectionId);
+            return await SecretManager.GetSecret(secretSize);
         }
 
         public override Task OnConnectedAsync()

@@ -4,6 +4,8 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -20,6 +22,9 @@ namespace Triggered.Services
         private readonly MessagingService _messagingService;
 
         private Dictionary<string, List<CompiledModule>> EventModules { get; } = new();
+
+        readonly string UtilitiesAssemblyName = Path.GetRandomFileName();
+        private byte[]? UtilitiesAssembly { get; set; } = null;
 
         #endregion
 
@@ -41,7 +46,7 @@ namespace Triggered.Services
 
         #region Constructor
 
-        public ModuleService(IDbContextFactory<TriggeredDbContext> dbContextFactory, MessagingService messagingService, DataService dataService, QueueService queueService)
+        public ModuleService(IDbContextFactory<TriggeredDbContext> dbContextFactory, MessagingService messagingService, DataService dataService, QueueService queueService, MemoryCache memoryCache)
         {
             _dbContextFactory = dbContextFactory;
             _messagingService = messagingService;
@@ -52,12 +57,21 @@ namespace Triggered.Services
             {
                 (nameof(DataService), typeof(DataService), dataService),
                 (nameof(QueueService), typeof(QueueService), queueService),
+                (nameof(MemoryCache), typeof(MemoryCache), memoryCache),
                 (nameof(ModuleService), typeof(ModuleService), this),
                 (nameof(MessagingService), typeof(MessagingService), _messagingService),
                 (nameof(IDbContextFactory<TriggeredDbContext>), typeof(IDbContextFactory<TriggeredDbContext>), dbContextFactory)
             });
 
-            //TODO: Create generic module execution method.
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+            {
+                if (new AssemblyName(args.Name).Name == UtilitiesAssemblyName)
+                { 
+                    return Assembly.Load(UtilitiesAssembly!.ToArray()); 
+                }
+
+                return null;
+            };
         }
 
         public void IntializeNetObjects()   
@@ -124,12 +138,61 @@ namespace Triggered.Services
 
         #region Public Methods
 
-        public void RegisterCustomEvent()
+        public async Task AddUtilities()
         {
             SupportedEvents.Add("ModuleService.OnCustomEvent", "Custom");
             EventArgumentTypes.Add("ModuleService.OnCustomEvent", typeof(CustomEventArgs));
             SupportedArgumentTypes.Add("CustomEventArgs", typeof(CustomEventArgs));
             RegisterEvents(this);
+
+            await CompileUtilities();
+        }
+
+        public async Task<(List<string>, List<string>)> CompileUtilities(string? code = null)
+        {
+            List<string> compilationWarnings = new();
+            List<string> compilationErrors = new();
+            List<SyntaxTree> syntaxTrees = new();
+
+            if (code != null)
+                syntaxTrees.Add(CSharpSyntaxTree.ParseText(code));
+            else
+                foreach (Utility utility in (await _dbContextFactory.CreateDbContextAsync()).Utilities)
+                {
+                    syntaxTrees.Add(CSharpSyntaxTree.ParseText(utility.Code));
+                }
+
+            if (syntaxTrees.Any())
+            {
+                List<MetadataReference> references = GetReferences(false);
+
+                CSharpCompilation compilation = CSharpCompilation.Create(
+                    UtilitiesAssemblyName,
+                    syntaxTrees: syntaxTrees,
+                    references: references,
+                    options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, 
+                        metadataReferenceResolver: new MissingResolver(),
+                        nullableContextOptions: NullableContextOptions.Enable));
+
+                using MemoryStream memoryStream = new();
+                EmitResult result = compilation.Emit(memoryStream);
+
+                IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic =>
+                    diagnostic.IsWarningAsError ||
+                    diagnostic.Severity == DiagnosticSeverity.Error);
+                compilationErrors.AddRange(failures.Select(failure => $"{failure.Id}: {failure.GetMessage()}"));
+
+                IEnumerable<Diagnostic> warnings = result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning);
+                compilationWarnings.AddRange(warnings.Select(failure => $"{failure.Id}: {failure.GetMessage()}"));
+                
+                if (result.Success && code == null)
+                {
+                    memoryStream.Seek(0, SeekOrigin.Begin);
+                    UtilitiesAssembly = memoryStream.ToArray();
+                }
+            }
+
+            return (compilationWarnings, compilationErrors);        
         }
 
         public void RegisterParameterObjects(IEnumerable<(string name, Type type, object instance)> parameterObjects)
@@ -219,14 +282,20 @@ namespace Triggered.Services
             }
         }
 
-        public void CompileModules(string subscriptionEvent)
+        public void CompileAllModules()
+        {
+            foreach (string eventName in SupportedEvents.Keys)
+                CompileModules(eventName);            
+        }
+
+        public void CompileModules(string eventName)
         {
             using TriggeredDbContext triggeredDbContext = _dbContextFactory.CreateDbContext();
 
             List<CompiledModule> returnModules = new();
 
             foreach (Models.Module module in triggeredDbContext.Modules
-                .Where(module => module.Event == subscriptionEvent)
+                .Where(module => module.Event == eventName)
                 .OrderBy(module => module.ExecutionOrder))
             {
                 CompiledModule? compiledModule = CompileModule(module);
@@ -239,15 +308,15 @@ namespace Triggered.Services
 
             lock (EventModules)
             {
-                EventModules[subscriptionEvent] = returnModules;
+                EventModules[eventName] = returnModules;
             }
         }
 
-        public void ClearModules(string subscriptionEvent)
+        public void ClearModules(string eventName)
         {
             lock (EventModules)
             {
-                EventModules[subscriptionEvent] = new();
+                EventModules[eventName] = new();
             }
         }
 
@@ -287,7 +356,7 @@ namespace Triggered.Services
                         returnTypeArgumentSymbol != null &&
                         returnTypeArgumentSymbol.Name.Equals("Boolean"))
                     {
-                        using var memoryStream = new MemoryStream();
+                        using MemoryStream memoryStream = new();
                         EmitResult result = compilation.Emit(memoryStream);
 
                         IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic =>
@@ -419,61 +488,82 @@ namespace Triggered.Services
             }
         }
 
-        public void RemoveModule(int id, string subscriptionEvent)
+        public void RemoveModule(int id, string eventName)
         {
             lock (EventModules)
             {
-                if (EventModules.TryGetValue(subscriptionEvent, out List<CompiledModule>? eventModules) && eventModules != null)
+                if (EventModules.TryGetValue(eventName, out List<CompiledModule>? eventModules) && eventModules != null)
                 {
                     CompiledModule? compiledModule = eventModules.FirstOrDefault(compiledModule => compiledModule.Id == id);
 
                     if (compiledModule != null && eventModules.Remove(compiledModule))
                     {
-                        EventModules[subscriptionEvent] = eventModules;
+                        EventModules[eventName] = eventModules;
                     }
                 }
             }
         }
 
-        public async Task ExecuteModules(string subscriptionEvent, object eventArgs)
+        public async Task ExecuteModules(string eventName, object eventArgs)
         {
-            if (EventModules.TryGetValue(subscriptionEvent, out List<CompiledModule>? compiledModules) &&
+            if (EventModules.TryGetValue(eventName, out List<CompiledModule>? compiledModules) &&
                 compiledModules != null && compiledModules.Any())
             {
                 foreach (CompiledModule compiledModule in compiledModules)
                 {
-                    if (!compiledModule.IsEnabled)
-                        continue;
-
-                    await _messagingService.AddMessage($"Executing {subscriptionEvent} module {compiledModule.Name}", MessageCategory.Event, LogLevel.Debug);
-
-                    try
-                    {
-                        List<object> arguments = new();
-                        foreach (Type parameterType in compiledModule.ParameterTypes)
-                        {
-                            if (parameterType.Equals(eventArgs.GetType()))
-                                arguments.Add(eventArgs);
-                            else
-                            {
-                                if (EventObjects.TryGetValue(parameterType, out object? obj) && obj != null)
-                                    arguments.Add(obj);
-                            }
-                        }
-
-                        if (!await compiledModule.ModuleFunction(arguments.ToArray()))
-                            break;
-                    }
-                    catch (Exception exception)
-                    {
-                        await _messagingService.AddMessage($"{subscriptionEvent} module {compiledModule.Name} exception: {exception.InnerException?.Message ?? exception.Message} in {exception.InnerException?.StackTrace ?? exception.StackTrace }", MessageCategory.Event, LogLevel.Error);
-                    }
-
-                    if (compiledModule.StopEventExecution)
+                    if (!await ExecuteModule(eventName, compiledModule, eventArgs))
                         break;
                 }
             }
         }
+
+        public Task ExecuteModules(string eventName, string stringArguments)
+        {
+            if (!EventArgumentTypes.TryGetValue(eventName, out Type? argumentType) || argumentType == null)
+                throw new ArgumentException("The event name supplied could not be found in the list of supported events! Please verify it and try again.");
+
+            object? eventArgs;
+            Newtonsoft.Json.Serialization.ErrorEventArgs? errorEventArgs = null;
+            if (string.IsNullOrWhiteSpace(stringArguments))
+                eventArgs = new EventArgs();
+            else
+                eventArgs = JsonConvert.DeserializeObject(stringArguments, argumentType, new JsonSerializerSettings { Error = (_, eventArgs) => { errorEventArgs = eventArgs; } });
+
+            if (eventArgs == null)
+                throw new ArgumentException($"The JSON data could not be parsed as \"{nameof(argumentType)}\". Please make sure the JSON data is accurate and try again: {errorEventArgs?.ErrorContext.Error.Message ?? "N/A"}");
+
+            _ = Task.Run(async () => await ExecuteModules(eventName, eventArgs));
+
+            return Task.CompletedTask;
+        }
+
+        public async Task ExecuteModule(int moduleId, string stringArguments)
+        {
+            Models.Module? module = (await _dbContextFactory.CreateDbContextAsync()).Modules.FirstOrDefault(eventTest => eventTest.Id == moduleId);
+
+            if (module == null)
+                throw new ArgumentException($"Could not find module with ID {moduleId}");
+
+            if (module.Event == null || !EventArgumentTypes.TryGetValue(module.Event, out Type? argumentType) || argumentType == null)
+                throw new ArgumentException("The event name supplied could not be found in the list of supported events! Please verify it and try again.");
+
+            CompiledModule? compiledModule = EventModules.Values.SelectMany(list => list).FirstOrDefault(compiledModule => compiledModule.Id == module.Id);
+            if (compiledModule == null)
+                throw new ArgumentException($"The supplied module with ID {moduleId} is not a validly compiled one. Please check module for compilation status.");
+
+            object? eventArgs;
+            Newtonsoft.Json.Serialization.ErrorEventArgs? errorEventArgs = null;
+            if (string.IsNullOrWhiteSpace(stringArguments))
+                eventArgs = new EventArgs();
+            else
+                eventArgs = JsonConvert.DeserializeObject(stringArguments, argumentType, new JsonSerializerSettings { Error = (_, eventArgs) => { errorEventArgs = eventArgs; } });
+
+            if (eventArgs == null)
+                throw new ArgumentException($"The JSON data could not be parsed as \"{nameof(argumentType)}\". Please make sure the JSON data is accurate and try again: {errorEventArgs?.ErrorContext.Error.Message ?? "N/A"}");
+
+            _ = Task.Run(async () => await ExecuteModule(module.Event, compiledModule, eventArgs));            
+        }
+
 
         #endregion
 
@@ -498,11 +588,28 @@ namespace Triggered.Services
         }
 
         private void CompileCode(string moduleCode, out CSharpCompilation compilation, out SemanticModel semanticModel, out IEnumerable<MethodDeclarationSyntax> methodDeclarationSyntaxes)
-        {        
+        {
             SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(moduleCode);
 
             string assemblyName = Path.GetRandomFileName();
+            List<MetadataReference> references = GetReferences();
 
+            compilation = CSharpCompilation.Create(
+                assemblyName,
+                syntaxTrees: new[] { syntaxTree },
+                references: references,
+                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,                    
+                    metadataReferenceResolver: new MissingResolver(),
+                nullableContextOptions: NullableContextOptions.Enable));
+
+            methodDeclarationSyntaxes = compilation.SyntaxTrees
+                .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().ToList());
+
+            semanticModel = compilation.GetSemanticModel(syntaxTree, true);
+        }
+
+        private List<MetadataReference> GetReferences(bool addUtilities = true)
+        {
             List<MetadataReference> references = new();
 
             references.AddRange(Assembly.GetExecutingAssembly().GetReferencedAssemblies()
@@ -511,19 +618,48 @@ namespace Triggered.Services
             references.AddRange(((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
                     .Select(path => MetadataReference.CreateFromFile(path)));
 
-            if (_dbContextFactory.CreateDbContext().Settings.GetSetting("ExternalResourcesPath").TryCreateDirectory(out DirectoryInfo? directoryInfo))           
-                references.AddRange(directoryInfo!.GetFiles("*.dll", SearchOption.AllDirectories).Select(referenceFile => MetadataReference.CreateFromFile(referenceFile.FullName)));            
+            if (_dbContextFactory.CreateDbContext().Settings.GetSetting("ExternalResourcesPath").TryCreateDirectory(out DirectoryInfo? directoryInfo))
+                references.AddRange(directoryInfo!.GetFiles("*.dll", SearchOption.AllDirectories).Select(referenceFile => MetadataReference.CreateFromFile(referenceFile.FullName)));
 
-            compilation = CSharpCompilation.Create(
-                assemblyName,
-                syntaxTrees: new[] { syntaxTree },
-                references: references,
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, metadataReferenceResolver: new MissingResolver()));
+            if (addUtilities && UtilitiesAssembly != null)
+                references.Add(MetadataReference.CreateFromImage(UtilitiesAssembly));
 
-            methodDeclarationSyntaxes = compilation.SyntaxTrees
-                .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().ToList());
+            return references;
+        }
 
-            semanticModel = compilation.GetSemanticModel(syntaxTree, true);
+        private async Task<bool> ExecuteModule(string subscriptionEvent, CompiledModule compiledModule, object eventArgs)
+        {
+            if (!compiledModule.IsEnabled)
+                return true;
+
+            await _messagingService.AddMessage($"Executing {subscriptionEvent} module {compiledModule.Name}", MessageCategory.Event, LogLevel.Debug);
+
+            try
+            {
+                List<object> arguments = new();
+                foreach (Type parameterType in compiledModule.ParameterTypes)
+                {
+                    if (parameterType.Equals(eventArgs.GetType()))
+                        arguments.Add(eventArgs);
+                    else
+                    {
+                        if (EventObjects.TryGetValue(parameterType, out object? obj) && obj != null)
+                            arguments.Add(obj);
+                    }
+                }
+
+                if (!await compiledModule.ModuleFunction(arguments.ToArray()))
+                    return false;
+            }
+            catch (Exception exception)
+            {
+                await _messagingService.AddMessage($"{subscriptionEvent} module {compiledModule.Name} exception: {exception.InnerException?.Message ?? exception.Message} in {exception.InnerException?.StackTrace ?? exception.StackTrace }", MessageCategory.Event, LogLevel.Error);
+            }
+
+            if (compiledModule.StopEventExecution)
+                return false;
+
+            return true;
         }
 
         #endregion

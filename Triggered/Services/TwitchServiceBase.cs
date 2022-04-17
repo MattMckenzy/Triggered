@@ -5,7 +5,6 @@ using TwitchLib.Api;
 using TwitchLib.Api.Auth;
 using TwitchLib.Api.Core;
 using TwitchLib.Api.Core.Enums;
-using TwitchLib.Api.Core.Exceptions;
 using TwitchLib.Api.Core.HttpCallHandlers;
 using TwitchLib.Api.Helix.Models.Channels.GetChannelInformation;
 using TwitchLib.Api.Helix.Models.Users.GetUsers;

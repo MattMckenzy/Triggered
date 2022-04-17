@@ -106,10 +106,11 @@
 
     private async void OnLoginClick()
     {
-        bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchChatUseSecondAccount"), out bool useSecondAccount);
+        if (await TwitchService.Initialize())
+        {
+            if (bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchChatUseSecondAccount"), out bool useSecondAccount) && !useSecondAccount)
+                await TwitchChatService.Initialize();
 
-        if (await TwitchService.Initialize() && !useSecondAccount && await TwitchChatService.Initialize())
-        {            
             string? authCodeUri = await TwitchService.GetAuthorizationCodeUrl($"{DbContextFactory.CreateDbContext().Settings.GetSetting("Host")}/auth/redirect");
             if (authCodeUri != null)
                 await JSRuntime.InvokeVoidAsync("open", authCodeUri);

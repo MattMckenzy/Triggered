@@ -1,0 +1,38 @@
+﻿#codeModal {
+    width: 100vw;
+    height: 100vh;
+}
+
+#codeEditor {
+    width: calc(100vw);
+    height: calc(70vh - 57px);
+    border: 1px solid #fff;
+    margin: 0;
+    padding: 0;
+}
+
+#codeAnalyser {
+    width: calc(100vw);
+    height: calc(30vh);
+    border: 1px solid #fff;
+    margin: 0;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.main {
+    grid-area: main;
+}
+
+@media (min-width: 800px) {
+
+    .utilities {
+        display: grid;
+        gap: 1.5rem;
+        grid-template-areas: "sidebar main";
+        grid-template-columns: 400px 1fr;
+        margin-top: 1.5rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+}

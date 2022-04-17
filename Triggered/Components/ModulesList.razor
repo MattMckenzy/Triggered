@@ -80,7 +80,7 @@
             @if (ExternalModules.Values.Where(module => module.Event.Equals(CurrentModule.Event) || string.IsNullOrWhiteSpace(module.Event)).Any())
             {                 
                 <div class="mb-2 me-3">
-                <FilterSelect Selected=@(ExternalModules.First().Key)
+                <FilterSelect
                     Options=@(
                     ExternalModules.Where(externalModule => externalModule.Value.Event.Equals(CurrentModule.Event) || string.IsNullOrWhiteSpace(externalModule.Value.Event))
                         .ToDictionary(externalModule => externalModule.Key, externalModule => externalModule.Key))

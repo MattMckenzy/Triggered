@@ -132,7 +132,7 @@ namespace TwitchLib.Api.Auth
 
             try
             {
-                return await TwitchGetGenericAsync<ValidateAccessTokenResponse>("/oauth2/validate", ApiVersion.Void, accessToken: internalAccessToken, customBase: "https://id.twitch.tv");
+                    return await TwitchGetGenericAsync<ValidateAccessTokenResponse>("/oauth2/validate", ApiVersion.Void, accessToken: internalAccessToken, customBase: "https://id.twitch.tv");
             } catch(UnauthorizedException)
             {
                 // BadScopeException == 401, which is surfaced when token is invalid

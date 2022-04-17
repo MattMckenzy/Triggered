@@ -15,11 +15,8 @@ namespace Triggered.Extensions
               @"using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using OBSWebsocketDotNet;
 using Triggered.Models;
 using Triggered.Services;
-using TwitchLib.Client.Events;
-using TwitchLib.PubSub.Events;
 
 namespace Triggered.Modules./*EventName*/
 {
@@ -32,7 +29,27 @@ namespace Triggered.Modules./*EventName*/
     }
 }" 
             },
+            {
+                "UtilityTemplate",
+                @"using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Triggered.Models;
+using Triggered.Services;
+
+namespace Triggered.Utilities
+{
+    public class UtilitiesClass
+    {
+        public static Task UtilitiesMethod()
+        {
+            return Task.CompletedTask;
+        }
+    }
+}"
+            },
             { "ExternalModulesPath", "Modules" },
+            { "ExternalUtilitiesPath", "Utilities" },
             { "ExternalResourcesPath", "Resources" },
             { "MessagesLimit", "1000" },
             { "MessageLevels", "Information, Warning, Error" },

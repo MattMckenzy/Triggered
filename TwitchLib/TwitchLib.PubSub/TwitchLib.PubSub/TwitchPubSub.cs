@@ -461,7 +461,7 @@ namespace TwitchLib.PubSub
                         case "chat_moderator_actions":
                             var cma = msg.MessageData as ChatModeratorActions;
                             var reason = "";
-                            switch (cma?.ModerationAction.ToLower())
+                            switch (cma?.ModerationAction?.ToLower())
                             {
                                 case "timeout":
                                     if (cma.Args.Count > 2)

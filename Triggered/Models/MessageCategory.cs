@@ -7,6 +7,7 @@
         Authentication,
         Event,
         Module,
+        Utility,
         Testing
     }
 }

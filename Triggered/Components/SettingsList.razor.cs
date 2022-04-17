@@ -98,6 +98,8 @@ namespace Triggered.Components
             "Autostart",
             "ModuleTemplate",
             "ExternalModulesPath",
+            "UtilityTemplate",
+            "ExternalUtilitiesPath",
             "ExternalResourcesPath",
             "MessagesLimit",
             "MessageLevels",

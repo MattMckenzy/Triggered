@@ -61,7 +61,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Discord.Net.Webhook", "Disc
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Discord.Net.Interactions", "Discord.Net\src\Discord.Net.Interactions\Discord.Net.Interactions.csproj", "{26427ECE-2C87-435B-83CA-8BC5DD2F4732}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Triggered.Proxy", "Triggered.Proxy\Triggered.Proxy.csproj", "{0DB4D0D6-3D1B-4669-A5FB-DDE76C6CD153}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Triggered.Proxy", "Triggered.Proxy\Triggered.Proxy.csproj", "{0DB4D0D6-3D1B-4669-A5FB-DDE76C6CD153}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

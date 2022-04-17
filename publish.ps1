@@ -2,6 +2,7 @@ dotnet build .\Triggered\Triggered.csproj -c Release /p:DeployOnBuild=true /p:Pu
 dotnet publish .\Triggered.Launcher\Triggered.Launcher.csproj /p:PublishProfile=FolderProfile
 
 cp ModuleMaker\Modules Releases\win-x64\Triggered\Modules
+cp ModuleMaker\Utilities Releases\win-x64\Triggered\Utilities
 
 $version = (Get-Item Releases\win-x64\Triggered\Triggered.exe).VersionInfo.FileVersion
 if (Test-Path "Releases\win-x64\${version}.zip") {

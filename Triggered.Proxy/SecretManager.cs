@@ -7,7 +7,7 @@ namespace Triggered.Proxy
     {
         public ConcurrentDictionary<string, List<string>> Secrets { get; } = new();
 
-        public Task<string> GetSecret(int secretSize, string connectionId)
+        public Task<string> GetSecret(int secretSize)
         {
             string secret;
             do

@@ -1,16 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Triggered.Services;
-using TwitchLib.Api.Core.Enums;
-using TwitchLib.Api.Helix.Models.ChannelPoints.UpdateCustomRewardRedemptionStatus;
 using TwitchLib.EventSub.Webhooks.Core.EventArgs.Channel;
 
-namespace TownBulletin.Modules.OnRewardRedeemed
+namespace ModuleMaker.Modules.Twitch
 {
     public class CamOnlyReward
     {
-        public static async Task<bool> ShowCamReward(ChannelPointsCustomRewardRedemptionArgs eventArgs, QueueService queueService, ObsService obsService, TwitchService twitchService)
+        public static async Task<bool> ShowCamReward(ChannelPointsCustomRewardRedemptionArgs eventArgs, QueueService queueService, ObsService obsService)
         {
             if (!eventArgs.Notification.Event.Reward.Title.Equals("Full Screen Cam", StringComparison.InvariantCultureIgnoreCase))
                 return true;
@@ -21,12 +18,6 @@ namespace TownBulletin.Modules.OnRewardRedeemed
                 obsService.OBSWebsocket.SetCurrentScene("Full Camera");
                 await Task.Delay(10000);
                 obsService.OBSWebsocket.SetCurrentScene(currentScene);
-
-                await twitchService.TwitchAPI.Helix.ChannelPoints.UpdateCustomRewardRedemptionStatus(
-                    eventArgs.Notification.Event.BroadcasterUserId,
-                    eventArgs.Notification.Event.Reward.Id, 
-                    new List<string> { eventArgs.Notification.Event.Id },
-                    new UpdateCustomRewardRedemptionStatusRequest { Status = CustomRewardRedemptionStatus.FULFILLED });
 
                 return true;
             });
