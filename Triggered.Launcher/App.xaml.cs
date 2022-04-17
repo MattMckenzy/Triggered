@@ -4,6 +4,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -104,7 +105,7 @@ namespace Triggered.Launcher
                         }
                     }
 
-                    progress.ProgressChanged += Progress_ProgressChanged;
+                    progress.ProgressChanged += Progress_ProgressChanged; 
 
                     while (!downloadTask.IsCompleted)
                     {
@@ -117,7 +118,34 @@ namespace Triggered.Launcher
                     ConsoleContent.WriteLine($"Download successful!");
                     ConsoleContent.WriteLine($"Updating Triggered");
 
-                    ZipFile.ExtractToDirectory(zipPath, localPath, true);
+                    using (ZipArchive zipArchive = ZipFile.OpenRead(zipPath))
+                    {
+                        foreach (ZipArchiveEntry zipArchiveEntry in zipArchive.Entries)
+                        {
+                            string entryFullName = Path.Combine(localPath, zipArchiveEntry.FullName);
+                            string entryPath = Path.GetDirectoryName(entryFullName) ?? localPath;
+
+                            if (!Directory.Exists(entryPath))
+                                Directory.CreateDirectory(entryPath);
+
+                            string? fileName = Path.GetFileName(entryFullName);
+                            if (!string.IsNullOrWhiteSpace(fileName))
+                            {
+                                string fileExtension = Path.GetExtension(fileName);
+                                if ((fileExtension.Equals(".cs", StringComparison.InvariantCultureIgnoreCase) ||
+                                    fileExtension.Equals(".db", StringComparison.InvariantCultureIgnoreCase))
+                                    && File.Exists(entryFullName))
+                                {
+                                    if (!File.ReadAllBytes(entryFullName).SequenceEqual(zipArchiveEntry.GetBytes()))
+                                        ConsoleContent.WriteLine($"Downloaded file \"{zipArchiveEntry.FullName}\" is different than current version. Will not replace.");
+                                }
+                                else
+                                    zipArchiveEntry.ExtractToFile(entryFullName, true);
+                            }
+
+                        }
+                    }
+
                     File.Delete(zipPath);
 
                     FileInfo newLauncher = new(Path.Combine(localPath, "Triggered", "Triggered.Launcher.exe"));
@@ -181,6 +209,7 @@ namespace Triggered.Launcher
         private void TriggeredProcess_DataReceived(object sender, DataReceivedEventArgs e)
         {
             ConsoleContent.WriteLine(e.Data ?? string.Empty);
-        }
+        }      
+        
     }
 }

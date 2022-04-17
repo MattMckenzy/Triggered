@@ -7,7 +7,11 @@ namespace Triggered.Launcher.Models
 {
     public class ConsoleContent : INotifyPropertyChanged
     {
-        readonly ObservableCollection<string> _consoleOutput = new() { "Triggered Launcher v1.0.0.", "" };
+        readonly ObservableCollection<string> _consoleOutput = new() 
+        { 
+            $"Triggered Launcher v{System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion}.", 
+            "" 
+        };
 
         public ObservableCollection<string> ConsoleOutput
         {
