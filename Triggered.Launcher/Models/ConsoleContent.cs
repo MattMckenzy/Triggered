@@ -9,7 +9,7 @@ namespace Triggered.Launcher.Models
     {
         readonly ObservableCollection<string> _consoleOutput = new() 
         { 
-            $"Triggered Launcher v{System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion}.", 
+            $"Triggered Launcher v{System.Diagnostics.FileVersionInfo.GetVersionInfo(Environment.ProcessPath!).FileVersion}.", 
             "" 
         };
 
