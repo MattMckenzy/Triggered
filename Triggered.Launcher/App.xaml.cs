@@ -6,7 +6,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
-using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -49,6 +48,13 @@ namespace Triggered.Launcher
         {
             try
             {
+                string localPath = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0])!;
+                FileInfo currentLauncher = new(Environment.GetCommandLineArgs()[0]);
+                FileInfo newLauncher = new(Environment.GetCommandLineArgs()[0] + ".new");
+                if (newLauncher.Exists)
+                {
+                    ConsoleContent.WriteLine($"There is a new version of the launcher available in the current directory, please replace \"{currentLauncher.Name}\" with \"{newLauncher.Name}\" by removing \".new\" from the file name and launch it again.");
+                }    
 
                 CancellationTokenSource = new CancellationTokenSource();
                 HttpClient client = new();
@@ -56,11 +62,6 @@ namespace Triggered.Launcher
 
                 Version onlineVersion = new(await responseMessage.Content.ReadAsStringAsync() ?? "0.0.0");
                 ConsoleContent.WriteLine($"Latest version available: v{onlineVersion}");
-
-                string localPath = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0])!;
-                FileInfo currentLauncher = new(Path.Combine(localPath, "Triggered.Launcher.exe"));
-                string currentLauncherPath = currentLauncher.FullName;
-                File.Delete(currentLauncherPath.Replace("exe", "bak"));
 
                 FileInfo localExecutable = new(Path.Combine(localPath, "Triggered", "Triggered.exe"));
                 Version localVersion = new("0.0.0");
@@ -77,8 +78,10 @@ namespace Triggered.Launcher
                     string zipPath = Path.Combine(localPath, $"{onlineVersion}.zip");
 
                     ConsoleContent.WriteLine(string.Empty);
-                    ConsoleContent.WriteLine($"Updating Triggered.");
-                    ConsoleContent.WriteLine($"Download starting...");
+                    ConsoleContent.WriteLine($"Updating service.");
+                    ConsoleContent.WriteLine(string.Empty);
+                    ConsoleContent.WriteLine($"Downloading...");
+                    ConsoleContent.WriteLine(string.Empty);
                     ConsoleContent.WriteLine(string.Empty);
 
                     Progress<(long, long)> progress = new();
@@ -114,49 +117,78 @@ namespace Triggered.Launcher
 
                     await downloadTask;
 
-                    ConsoleContent.WriteLine(string.Empty);
                     ConsoleContent.WriteLine($"Download successful!");
-                    ConsoleContent.WriteLine($"Updating Triggered");
+                    ConsoleContent.WriteLine(string.Empty);
 
-                    currentLauncher.MoveTo(currentLauncherPath.Replace("exe", "bak"));
-
-                    using (ZipArchive zipArchive = ZipFile.OpenRead(zipPath))
+                    Task unzipTask = Task.Run(async () =>
                     {
-                        foreach (ZipArchiveEntry zipArchiveEntry in zipArchive.Entries)
-                        {
-                            string entryFullName = Path.Combine(localPath, zipArchiveEntry.FullName);
-                            DirectoryInfo entryDirectory = new(Path.GetDirectoryName(entryFullName) ?? localPath);
+                        ConsoleContent.WriteLine("Starting update.");
+                        ConsoleContent.WriteLine(string.Empty);
 
-                            if (!entryDirectory.Exists)
+                        using ZipArchive zipArchive = ZipFile.Open(zipPath, ZipArchiveMode.Read);
+                        foreach(ZipArchiveEntry zipArchiveEntry in zipArchive.Entries)
+                        {
+                            if (string.IsNullOrWhiteSpace(zipArchiveEntry.Name))
+                                continue;
+
+                            string entryRelativePath = zipArchiveEntry.FullName;
+                            string entryExtension = Path.GetExtension(zipArchiveEntry.Name);
+                            string currentFilePath = Path.Combine(localPath, entryRelativePath);
+
+                            if (currentFilePath.Equals(currentLauncher.FullName, StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                if (!File.ReadAllBytes(currentFilePath).SequenceEqual(zipArchiveEntry.GetBytes()))
+                                {
+                                    currentFilePath = newLauncher.FullName;
+                                    ConsoleContent.EraseLines(1);
+                                    ConsoleContent.WriteLine($"New launcher updated. Please replace \"{currentLauncher.Name}\" with \"{newLauncher.Name}\" by removing \".new\" from the file name before launching it again.");
+                                    ConsoleContent.WriteLine(string.Empty);
+                                }
+                                else
+                                    continue;
+                            }
+                            else if ((entryExtension.Equals(".cs", StringComparison.InvariantCultureIgnoreCase) ||
+                                    entryExtension.Equals(".db", StringComparison.InvariantCultureIgnoreCase)) &&
+                                File.Exists(currentFilePath) &&
+                                !File.ReadAllBytes(currentFilePath).SequenceEqual(zipArchiveEntry.GetBytes()))
+                            {
+                                ConsoleContent.EraseLines(1);
+                                ConsoleContent.WriteLine($"Updated file \"{entryRelativePath}\" is different than current version. Will not replace.");
+                                ConsoleContent.WriteLine(string.Empty);
+                                continue;
+                            }
+
+                            DirectoryInfo currentDirectory = new(Path.GetDirectoryName(currentFilePath)!);
+                            while (!currentDirectory.Exists)
                             {
                                 try
                                 {
-                                    Directory.CreateDirectory(entryDirectory.FullName);
+                                    currentDirectory.Create();
                                 }
-                                catch { }
-                            }                         
-
-                            string? fileName = Path.GetFileName(entryFullName);
-                            if (!string.IsNullOrWhiteSpace(fileName))
-                            {
-                                string fileExtension = Path.GetExtension(fileName);
-                                if ((fileExtension.Equals(".cs", StringComparison.InvariantCultureIgnoreCase) ||
-                                    fileExtension.Equals(".db", StringComparison.InvariantCultureIgnoreCase))
-                                    && File.Exists(entryFullName))
+                                catch
                                 {
-                                    if (!File.ReadAllBytes(entryFullName).SequenceEqual(zipArchiveEntry.GetBytes()))
-                                        ConsoleContent.WriteLine($"Downloaded file \"{zipArchiveEntry.FullName}\" is different than current version. Will not replace.");
+                                    await Task.Delay(500);
                                 }
-                                else
-                                    zipArchiveEntry.ExtractToFile(entryFullName, true);
                             }
 
+                            zipArchiveEntry.ExtractToFile(currentFilePath, true);
+
+                            ConsoleContent.EraseLines(1);
+                            ConsoleContent.WriteLine($"Updated file \"{entryRelativePath}\".");
                         }
+                  
+                        ConsoleContent.EraseLines(1);
+                        ConsoleContent.WriteLine("Update complete.");
+                    });
+
+                    while (!unzipTask.IsCompleted)
+                    {
+                        await Task.Delay(500, CancellationTokenSource.Token);
                     }
 
+                    await unzipTask;
+                  
                     File.Delete(zipPath);
-
-                    ConsoleContent.WriteLine($"Update Complete.");
                 }
 
                 FileInfo localAppsettingsFile = new(Path.Combine(localPath, "Triggered", "appsettings.json"));
@@ -169,7 +201,9 @@ namespace Triggered.Launcher
                 }
 
                 ConsoleContent.WriteLine(string.Empty);
-                ConsoleContent.WriteLine($"Starting Triggered.");
+                ConsoleContent.WriteLine($"Starting service.");
+                ConsoleContent.WriteLine(string.Empty);
+                ConsoleContent.WriteLine("------------------------------");
                 ConsoleContent.WriteLine(string.Empty);
 
                 ProcessStartInfo processStartInfo = new()
@@ -205,7 +239,7 @@ namespace Triggered.Launcher
         private void TriggeredProcess_Exited(object? sender, EventArgs e)
         {
             ConsoleContent.WriteLine(string.Empty);
-            ConsoleContent.WriteLine($"Triggered service has stopped.");
+            ConsoleContent.WriteLine($"Service has stopped.");
             TriggeredProcess?.Dispose();
             TriggeredProcess = null;
         }
