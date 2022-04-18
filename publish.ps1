@@ -12,7 +12,8 @@ if (Test-Path "Releases\win-x64\${version}.zip") {
 Compress-Archive -Path Releases\win-x64\Triggered* -CompressionLevel Optimal -DestinationPath "Releases\win-x64\${version}.zip"
 Set-Content latestversion ${version}
 
-del Releases\win-x64\Triggered* -Recurse
+del Releases\win-x64\Triggered\* -Recurse
+del Releases\win-x64\Triggered\
 
 git tag -a v${version} -m "Release v${version}"
 git add .
