@@ -10,7 +10,7 @@ if (Test-Path "Releases\win-x64\${version}.zip") {
 }
 
 Compress-Archive -Path Releases\win-x64\Triggered* -CompressionLevel Optimal -DestinationPath "Releases\win-x64\${version}.zip"
-Set-Content Releases\win-x64\latest ${version}
+Set-Content latestversion ${version}
 
 del Releases\win-x64\Triggered* -Recurse
 

@@ -52,7 +52,7 @@ namespace Triggered.Launcher
 
                 CancellationTokenSource = new CancellationTokenSource();
                 HttpClient client = new();
-                HttpResponseMessage responseMessage = await client.GetAsync("https://raw.githubusercontent.com/MattMckenzy/Triggered/main/Releases/win-x64/latest");
+                HttpResponseMessage responseMessage = await client.GetAsync("https://raw.githubusercontent.com/MattMckenzy/Triggered/main/latestversion");
 
                 Version onlineVersion = new(await responseMessage.Content.ReadAsStringAsync() ?? "0.0.0");
                 ConsoleContent.WriteLine($"Latest version available: v{onlineVersion}");
@@ -87,7 +87,7 @@ namespace Triggered.Launcher
                         HttpClient client = new();
                         client.Timeout = TimeSpan.FromMinutes(5);
                         using FileStream file = new(zipPath, FileMode.Create, FileAccess.Write, FileShare.None);
-                        await client.DownloadAsync($"https://github.com/MattMckenzy/Triggered/raw/main/Releases/win-x64/{onlineVersion}.zip", file, progress, CancellationTokenSource.Token);
+                        await client.DownloadAsync($"https://github.com/MattMckenzy/Triggered/releases/download/v{onlineVersion}/{onlineVersion}.zip", file, progress, CancellationTokenSource.Token);
                     });
 
                     void Progress_ProgressChanged(object? sender, (long, long) e)
