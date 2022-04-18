@@ -118,15 +118,23 @@ namespace Triggered.Launcher
                     ConsoleContent.WriteLine($"Download successful!");
                     ConsoleContent.WriteLine($"Updating Triggered");
 
+                    currentLauncher.MoveTo(currentLauncherPath.Replace("exe", "bak"));
+
                     using (ZipArchive zipArchive = ZipFile.OpenRead(zipPath))
                     {
                         foreach (ZipArchiveEntry zipArchiveEntry in zipArchive.Entries)
                         {
                             string entryFullName = Path.Combine(localPath, zipArchiveEntry.FullName);
-                            string entryPath = Path.GetDirectoryName(entryFullName) ?? localPath;
+                            DirectoryInfo entryDirectory = new(Path.GetDirectoryName(entryFullName) ?? localPath);
 
-                            if (!Directory.Exists(entryPath))
-                                Directory.CreateDirectory(entryPath);
+                            if (!entryDirectory.Exists)
+                            {
+                                try
+                                {
+                                    Directory.CreateDirectory(entryDirectory.FullName);
+                                }
+                                catch { }
+                            }                         
 
                             string? fileName = Path.GetFileName(entryFullName);
                             if (!string.IsNullOrWhiteSpace(fileName))
@@ -147,10 +155,6 @@ namespace Triggered.Launcher
                     }
 
                     File.Delete(zipPath);
-
-                    FileInfo newLauncher = new(Path.Combine(localPath, "Triggered", "Triggered.Launcher.exe"));
-                    currentLauncher.MoveTo(currentLauncherPath.Replace("exe", "bak"));
-                    newLauncher.MoveTo(currentLauncherPath);
 
                     ConsoleContent.WriteLine($"Update Complete.");
                 }
