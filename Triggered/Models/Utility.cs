@@ -6,12 +6,10 @@ namespace Triggered.Models
     {
         public Utility(
             string name = "",
-            string code = "",
-            bool isEnabled = true)
+            string code = "")
         {
             Name = name;
             Code = code;
-            IsEnabled = isEnabled;
         }
 
         [Required]
@@ -23,8 +21,5 @@ namespace Triggered.Models
 
         [Required]
         public string Code { get; set; }
-
-        [Required]
-        public bool IsEnabled { get; set; }
     }
 }

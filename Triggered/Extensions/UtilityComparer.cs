@@ -17,8 +17,7 @@ namespace Triggered.Extensions
 
             bool isEqual = leftModule.Id.Equals(rightModule.Id) &&
                 leftModule.Name.Equals(rightModule.Name) &&
-                leftModule.Code.Equals(rightModule.Code) &&
-                leftModule.IsEnabled.Equals(rightModule.IsEnabled);
+                leftModule.Code.Equals(rightModule.Code);
 
             return isEqual;
         }

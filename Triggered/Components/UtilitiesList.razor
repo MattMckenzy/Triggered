@@ -40,11 +40,6 @@
             <input type="text" class="form-control @(string.IsNullOrWhiteSpace(CurrentUtility.Name) ? "is-invalid" : "is-valid")" id="utilityName" value="@CurrentUtility.Name" 
                 @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentUtility.Name), changeEventArgs.Value!)) required>
         </div>    
-        <div class="mb-3">
-            <label for="isEnabled" class="form-check-label text-white">Is Enabled</label>
-            <input type="checkbox" class="form-check-input" id="isEnabled" checked=@CurrentUtility.IsEnabled 
-                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentUtility.IsEnabled), changeEventArgs.Value!))>
-        </div> 
         <div class="d-flex flex-wrap mb-3">
             <button type="button" class="btn btn-@(IsUtilityValid ? "primary" : "danger") mb-2 me-3" data-bs-toggle="modal" data-bs-target="#codeModal" id="codeButton">
                 Edit Code
