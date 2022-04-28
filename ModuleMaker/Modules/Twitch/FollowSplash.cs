@@ -13,6 +13,9 @@ namespace ModuleMaker.Modules.Twitch
 {
     public class OnFollow
     {
+        /// <summary>
+        /// When receiving a follow, plays a random sound shown along with a random image with the "FolllowSplash" scene in OBS.
+        /// </summary>
         public static async Task<bool> ShowFollowSplash(ChannelFollowArgs eventArgs, ObsService obsService, QueueService queueService, IDbContextFactory<TriggeredDbContext> triggeredDbContextFactory)
         {
             await queueService.Add("TopSplash", async () => {

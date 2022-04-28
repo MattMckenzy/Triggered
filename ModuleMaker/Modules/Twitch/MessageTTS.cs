@@ -13,6 +13,9 @@ namespace ModuleMaker.Modules.Twitch
 {
     public class MessageTTS
     {
+        /// <summary>
+        /// When receiving a highlighted or cheer message, detects its language, translates it if not english or french, synthesizes speech from it and plays it in the "FollowSplash" scene in OBS.
+        /// </summary>
         public static async Task<bool> SpeakMessage(OnMessageReceivedArgs eventArgs, ObsService obsService, QueueService queueService, IDbContextFactory<TriggeredDbContext> triggeredDbContextFactory)
         {
             if (eventArgs.ChatMessage.IsHighlighted || eventArgs.ChatMessage.Bits > 0)

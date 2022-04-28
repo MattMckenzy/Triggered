@@ -13,6 +13,9 @@ namespace ModuleMaker.Modules.Twitch
 {
     public class GiftSubscriberSplash
     {
+        /// <summary>
+        /// When receiving a gift subscription, plays arandom video for the "SubscriptionSplash" scene in OBS.
+        /// </summary>
         public static async Task<bool> ShowGiftSubscriberSplash(ChannelSubscriptionGiftArgs eventArgs, ObsService obsService, QueueService queueService, IDbContextFactory<TriggeredDbContext> triggeredDbContextFactory)
         {
             await queueService.Add("TopSplash", async () => {

@@ -1,0 +1,51 @@
+﻿@using Triggered.Models
+
+<h3 class="text-white mb-3">Triggered Modules</h3>
+
+<div class="list-group w-100 pe-2 messages-container">
+    @if(ExecutingModules != null)
+    {
+        foreach(KeyValuePair<CancellationTokenSource, (CompiledModule ExecutionModule, DateTime StartTime)> item in ExecutingModules)
+        {
+            <div class="list-group-item list-group-item-action list-group-item-primary flex-column align-items-start">
+                <div class="d-flex w-100">
+                    <h5 class="mb-1 me-auto">@item.Value.ExecutionModule.Module.Name</h5>
+                    <small>@((DateTime.Now - item.Value.StartTime).ToString(@"mm\:ss"))</small>
+                    <button class="btn btn-sm btn-close btn-danger ms-2" @onclick=@(() => item.Key.Cancel())></button>
+                </div>          
+                <small>@item.Value.ExecutionModule.Module.Event.Replace(".", " / ")</small>
+            </div>
+        }
+    }
+</div>
+
+@code {
+
+    [Inject]
+    private ModuleService ModuleService { get; set; } = null!;
+
+    private Dictionary<CancellationTokenSource, (CompiledModule executingModule, DateTime startTime)>? ExecutingModules { get; set; }
+
+    private Timer? ModulesTimer { get; set; }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            ExecutingModules = ModuleService.ExecutingModules;
+            ModuleService.ExecutingModulesStateChanged += UpdateExecutingModulesState; 
+            ModulesTimer = new(UpdatePage, null, 1000, 250);
+        }
+
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void UpdateExecutingModulesState(object? sender, EventArgs eventArgs)
+    {        
+        ExecutingModules = ModuleService.ExecutingModules;
+        UpdatePage();
+    }
+
+    private async void UpdatePage(object? _ = null) =>
+        await InvokeAsync(StateHasChanged);
+}

@@ -190,7 +190,7 @@ namespace Triggered.Components
             {
                 triggeredDbContext.Utilities.Update(CurrentUtility);
                 await triggeredDbContext.SaveChangesAsync();
-                await ModuleService.CompileUtilities();
+                await ModuleService.AnalyzeAndCompileUtilities();
                 await MessagingService.AddMessage($"Succesfully updated Utility \"{CurrentUtility.Name}\"!", MessageCategory.Utility);
 
                 await ModalPromptReference.ShowModalPrompt(new()
@@ -204,7 +204,7 @@ namespace Triggered.Components
             {
                 triggeredDbContext.Utilities.Add(CurrentUtility);
                 await triggeredDbContext.SaveChangesAsync();
-                await ModuleService.CompileUtilities();
+                await ModuleService.AnalyzeAndCompileUtilities();
                 await MessagingService.AddMessage($"Succesfully added new Utility \"{CurrentUtility.Name}\"!", MessageCategory.Utility);
 
                 await ModalPromptReference.ShowModalPrompt(new()
@@ -243,7 +243,7 @@ namespace Triggered.Components
                     using TriggeredDbContext triggeredDbContext = await DbContextFactory.CreateDbContextAsync();
                     triggeredDbContext.Remove(Utility);
                     await triggeredDbContext.SaveChangesAsync();
-                    await ModuleService.CompileUtilities();
+                    await ModuleService.AnalyzeAndCompileUtilities();
                     await MessagingService.AddMessage($"Succesfully removed the Utility \"{Utility.Name}\"!", MessageCategory.Utility);
 
                     await ModalPromptReference.ShowModalPrompt(new()
@@ -349,7 +349,7 @@ namespace Triggered.Components
                     {
                         IEnumerable<string> warnings;
                         IEnumerable<string> errors;
-                        (warnings, errors) = await ModuleService.CompileUtilities(CurrentUtility.Code);
+                        (warnings, errors) = await ModuleService.AnalyzeAndCompileUtilities(CurrentUtility.Code);
 
                         codeAnalysisResultsString = string.Empty;
                         if (errors.Any())

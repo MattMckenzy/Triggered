@@ -2,16 +2,27 @@
 
 namespace Triggered.Services
 {
+    /// <summary>
+    /// A singleton service that offers ways to interact with GitHub API.
+    /// </summary>
     public class GitHubService
     {
         private MarkupString? ReadmeMarkupString { get; set; }
         private IHttpClientFactory HttpClientFactory { get; }
 
+        /// <summary>
+        /// Default constructor with injected services.
+        /// </summary>
+        /// <param name="httpClientFactory">An injected <see cref="IHttpClientFactory"/>.</param>
         public GitHubService(IHttpClientFactory httpClientFactory)
         {
             HttpClientFactory = httpClientFactory;
         }
 
+        /// <summary>
+        /// Retrieves the README markup from "MattMckenzy/Triggered" as an HTML <see cref="MarkupString"/>.
+        /// </summary>
+        /// <returns>The README HTML <see cref="MarkupString"/>.</returns>
         public async Task<MarkupString> GetReadmeMarkupAsync()
         {
             if (ReadmeMarkupString == null)

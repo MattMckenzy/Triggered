@@ -9,24 +9,37 @@ using TwitchLib.Communication.Events;
 
 namespace Triggered.Services
 {
+    /// <summary>
+    /// A singleton service abstracted from <see cref="TwitchServiceBase"/> that handles connections to, registers events for and exposes <see cref="TwitchLib.Client.TwitchClient"/>.
+    /// </summary>
     public class TwitchChatService : TwitchServiceBase
     {
-        private readonly MessagingService _messagingService;
-        private readonly ModuleService _moduleService;
-        private readonly IDbContextFactory<TriggeredDbContext> _dbContextFactory;
+        private MessagingService MessagingService { get; }
+        private ModuleService ModuleService { get; }
+        private IDbContextFactory<TriggeredDbContext> DbContextFactory { get; }
 
+        /// <summary>
+        /// Class offering easy way to interact with Twitch Chat. Please see the TwitchLib Client documentation here: https://swiftyspiffy.com/TwitchLib/Client/index.html
+        /// </summary>
         public TwitchClient TwitchClient { get; set; } = new();
 
 
+        /// <summary>
+        /// Default constructor with injected services.
+        /// </summary>       
+        /// <param name="dbContextFactory">Injected <see cref="IDbContextFactory{TContext}"/> of <see cref="TriggeredDbContext"/>.</param>
+        /// <param name="moduleService">Injected <see cref="Services.ModuleService"/>.</param>
+        /// <param name="messagingService">Injected <see cref="Services.MessagingService"/>.</param>
+        /// <param name="encryptionService">Injected <see cref="EncryptionService"/>.</param>
         public TwitchChatService(IDbContextFactory<TriggeredDbContext> dbContextFactory,
                                 ModuleService moduleService,
                                 MessagingService messagingService,
                                 EncryptionService encryptionService) 
             : base(dbContextFactory, messagingService, encryptionService)
         {
-            _dbContextFactory = dbContextFactory;
-            _messagingService = messagingService;
-            _moduleService = moduleService;
+            DbContextFactory = dbContextFactory;
+            MessagingService = messagingService;
+            ModuleService = moduleService;
 
             ConnectFunction = Connect;
             DisconnectFunction = Disconnect;
@@ -40,16 +53,16 @@ namespace Triggered.Services
                 AuthScopes.WhispersEdit 
             });
 
-            _moduleService.RegisterParameterObjects(new (string, Type, object)[]
+            ModuleService.RegisterParameterObjects(new (string, Type, object)[]
             {
                 (nameof(TwitchChatService), typeof(TwitchChatService), this),
             });
-            _moduleService.InitializeSupportedEventsAndParameters(TwitchClient);
+            ModuleService.InitializeSupportedEventsAndParameters(TwitchClient);
         }
 
         public override Task<bool> Initialize(string settingModifier = "Chat")
         {
-            if (bool.TryParse(_dbContextFactory.CreateDbContext().Settings.GetSetting("TwitchChatUseSecondAccount"), out bool useSecondAccount) && !useSecondAccount)
+            if (bool.TryParse(DbContextFactory.CreateDbContext().Settings.GetSetting("TwitchChatUseSecondAccount"), out bool useSecondAccount) && !useSecondAccount)
                 settingModifier = string.Empty;
 
             return base.Initialize(settingModifier);
@@ -60,7 +73,7 @@ namespace Triggered.Services
             string? accessToken = await base.GetValidToken();
             if (accessToken == null)
             {
-                await _messagingService.AddMessage("Could not start TwitchChat services! Access Token was not found.", MessageCategory.Service, LogLevel.Error);
+                await MessagingService.AddMessage("Could not start TwitchChat services! Access Token was not found.", MessageCategory.Service, LogLevel.Error);
                 return;
             }
 
@@ -70,23 +83,21 @@ namespace Triggered.Services
             TwitchClient.OnFailureToReceiveJoinConfirmation += TwitchClient_OnFailureToReceiveJoinConfirmation;
 
             TwitchClient.Initialize(new ConnectionCredentials(UserName, accessToken,  capabilities: new() { Commands = true, Membership = true, Tags = true}), ChannelName);
-            _moduleService.RegisterEvents(TwitchClient);
+            await ModuleService.RegisterEvents(TwitchClient);
             TwitchClient.Connect();
         }
 
-        protected Task Disconnect()
+        protected async Task Disconnect()
         {
-            _moduleService.DeregisterEvents(TwitchClient);
+            await ModuleService.DeregisterEvents(TwitchClient);
             TwitchClient.Disconnect();
-
-            return Task.CompletedTask;
         }
 
         private async void TwitchClient_OnConnected(object? sender, OnConnectedArgs e)
         {
             await Task.Delay(5000);
             TwitchClient.JoinChannel(ChannelName);
-            await _messagingService.AddMessage("TwitchChat connected!", MessageCategory.Service, LogLevel.Debug);
+            await MessagingService.AddMessage("TwitchChat connected!", MessageCategory.Service, LogLevel.Debug);
         }
 
         private async void TwitchClient_OnDisconnected(object? sender, OnDisconnectedEventArgs e)
@@ -101,7 +112,7 @@ namespace Triggered.Services
 
         private async void TwitchClient_OnFailureToReceiveJoinConfirmation(object? sender, OnFailureToReceiveJoinConfirmationArgs e)
         {
-            await _messagingService.AddMessage($"Could not connect to channel \"{e.Exception.Channel}\": {e.Exception.Details}", MessageCategory.Service, LogLevel.Error);
+            await MessagingService.AddMessage($"Could not connect to channel \"{e.Exception.Channel}\": {e.Exception.Details}", MessageCategory.Service, LogLevel.Error);
         }
 
         private int disconnections = 0;
@@ -111,12 +122,12 @@ namespace Triggered.Services
             if (!_cancellationTokenSource.IsCancellationRequested && DateTime.Now - lastDisconnection < TimeSpan.FromMinutes(1) && disconnections >= 3)
             {
                 _cancellationTokenSource.Cancel();
-                await _messagingService.AddMessage("Could not connect to TwitchChat service after three retries, service stopped.", MessageCategory.Service, LogLevel.Error);
+                await MessagingService.AddMessage("Could not connect to TwitchChat service after three retries, service stopped.", MessageCategory.Service, LogLevel.Error);
             }
             else if (!_cancellationTokenSource.IsCancellationRequested)
             {
                 disconnections++;
-                await _messagingService.AddMessage($"Disconnected from TwitchChat. Connection retrying...", MessageCategory.Service, LogLevel.Warning);
+                await MessagingService.AddMessage($"Disconnected from TwitchChat. Connection retrying...", MessageCategory.Service, LogLevel.Warning);
 
                 TwitchClient.Connect();
             }

@@ -9,6 +9,9 @@ namespace ModuleMaker.Modules.Discord
 {
     public class TwitchSync
     {
+        /// <summary>
+        /// Sends the received discord message to the Twitch chat, as long as it's from the configured Discord text channel and the message is not from a bot.
+        /// </summary>
         public static async Task<bool> SendToTwitch(SocketMessageReceivedArguments eventArgs, DiscordService discordService, TwitchChatService twitchChatService, IDbContextFactory<TriggeredDbContext> triggeredDbContextFactory)
         {
             if (eventArgs.SocketMessage.Author.IsBot || 

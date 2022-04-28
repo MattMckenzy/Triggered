@@ -1,0 +1,97 @@
+﻿@using Triggered.Extensions
+@using Triggered.Models
+
+<h3 class="text-white mb-3">Services</h3>
+
+<div class="row">
+    @{
+        string twitchServiceTitle = $"<b>{(TwitchService.IsActive == null ? "STARTING" : ((bool)TwitchService.IsActive ? "Click to STOP" : "Click to START"))}</b> Twitch Service"; 
+        string twitchChatServiceTitle = $"<b>{(TwitchChatService.IsActive == null ? "STARTING" : ((bool)TwitchChatService.IsActive ? "Click to STOP" : "Click to START"))}</b> Twitch Chat Service"; 
+        string obsServiceTitle = $"<b>{(ObsService.IsActive == null ? "STARTING" : ((bool)ObsService.IsActive ? "Click to STOP" : "Click to START"))}</b> OBS Service"; 
+        string discordServiceTitle = $"<b>{(DiscordService.IsActive == null ? "STARTING" : ((bool)DiscordService.IsActive ? "Click to STOP" : "Click to START"))}</b> Discord Service";
+        string fileWatchingServiceTitle = $"<b>{(FileWatchingService.IsActive == null ? "STARTING" : ((bool)FileWatchingService.IsActive ? "Click to STOP" : "Click to START"))}</b> File Watching Service";
+    }
+    <div class="col-auto mb-3" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-trigger="hover"
+        data-bs-original-title="@twitchServiceTitle" aria-label="@twitchServiceTitle">
+        <button type="button" disabled=@(TwitchService.IsActive ==  null ? true : false) 
+            class="btn btn-@(TwitchService.IsActive == null ? "warning" : ((bool)TwitchService.IsActive ? "danger": "success"))" 
+            @onclick=@(async () => await ((TwitchService.IsActive ?? false) ? (Func<Task>)TwitchService.StopAsync : TwitchService.StartAsync)())>
+            <img class="img-shadow" height="20" src="assets/TwitchGlitchPurple.svg" />
+        </button>
+    </div>
+    <div class="col-auto mb-3" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-trigger="hover"    
+        data-bs-original-title="@twitchChatServiceTitle" aria-label="@twitchChatServiceTitle">
+        <button type="button" disabled=@(TwitchChatService.IsActive == null ? true : false) 
+            class="btn btn-@(TwitchChatService.IsActive == null ? "warning" : ((bool)TwitchChatService.IsActive ? "danger": "success"))" 
+            @onclick=@(async () => await ((TwitchChatService.IsActive ?? false) ? (Func<Task>)TwitchChatService.StopAsync : TwitchChatService.StartAsync)())>
+            <img class="img-shadow" height="20" src="assets/TwitchGlitchBlackOps.svg" />
+        </button>            
+    </div>
+    <div class="col-auto mb-3" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-trigger="hover"
+        data-bs-original-title="@obsServiceTitle" aria-label="@obsServiceTitle">
+        <button type="button" disabled=@(ObsService.IsActive ==  null ? true : false) 
+            class="btn btn-@(ObsService.IsActive == null ? "warning" : ((bool)ObsService.IsActive ? "danger": "success"))"            
+            @onclick=@(async () => await ((ObsService.IsActive ?? false) ? (Func<Task>)ObsService.StopAsync : ObsService.StartAsync)())>
+            <img class="img-shadow" height="20" src="assets/obs-studio.ico">
+        </button>
+    </div>
+    <div class="col-auto mb-3" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-trigger="hover"
+        data-bs-original-title="@discordServiceTitle" aria-label="@discordServiceTitle">
+        <button type="button" 
+            disabled=@(DiscordService.IsActive ==  null ? true : false) 
+            class="btn btn-@(DiscordService.IsActive == null ? "warning" : ((bool)DiscordService.IsActive ? "danger": "success"))" 
+            @onclick=@(async () => await ((DiscordService.IsActive ?? false) ? (Func<Task>)DiscordService.StopAsync : DiscordService.StartAsync)())>
+            <img class="img-shadow" height="20" width="20" src="assets/DiscordLogoColor.svg" />
+        </button>   
+    </div>
+    <div class="col-auto mb-3" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-trigger="hover"
+        data-bs-original-title="@fileWatchingServiceTitle" aria-label="@fileWatchingServiceTitle">
+        <button type="button" 
+            disabled=@(FileWatchingService.IsActive ==  null ? true : false) 
+            class="btn btn-@(FileWatchingService.IsActive == null ? "warning" : ((bool)FileWatchingService.IsActive ? "danger": "success"))" 
+            @onclick=@(async () => await ((FileWatchingService.IsActive ?? false) ? (Func<Task>)FileWatchingService.StopAsync : FileWatchingService.StartAsync)())>
+            <img class="img-shadow" height="20" width="20" src="assets/FileSystemService.png" />
+        </button>   
+    </div>
+</div>
+
+@code {
+    [Inject]
+    private TwitchService TwitchService { get; set; } = null!;
+    [Inject]
+    private TwitchChatService TwitchChatService { get; set; } = null!;
+    [Inject]
+    private ObsService ObsService { get; set; } = null!;
+    [Inject]
+    private DiscordService DiscordService { get; set; } = null!;    
+    [Inject]
+    private FileWatchingService FileWatchingService { get; set; } = null!;
+
+    [Inject]
+    private TriggeredDbContext TriggeredDbContext { get; set; } = null!;
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        TwitchService.ServiceStatusChanged += ServiceStatusChanged;                
+        TwitchChatService.ServiceStatusChanged += ServiceStatusChanged;
+        ObsService.ServiceStatusChanged += ServiceStatusChanged;
+        DiscordService.ServiceStatusChanged += ServiceStatusChanged;
+
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);        
+        if (firstRender)
+            await JSRuntime.InvokeVoidAsync("setupTooltips");
+    }
+
+    private async void ServiceStatusChanged(object? obj, EventArgs e)
+    {               
+        await InvokeAsync(StateHasChanged);
+    }
+}

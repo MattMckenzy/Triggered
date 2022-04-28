@@ -1,0 +1,50 @@
+﻿@using Triggered.Models
+
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+<div class="dataobjects">
+    
+    @if (DataObjectNames != null && CategoryDataObjects != null)
+    {        
+        <EntitySidebar Title="Data Objects"
+            Items=@DataObjectNames
+            Categories=@CategoryDataObjects
+            UseSuperCategories=true
+            CreateCallback=CreateDataObject
+            DeleteCallback=DeleteDataObject
+            LoadCallback=LoadDataObject
+            CurrentItem=@CurrentDataObject.Key></EntitySidebar>
+    }
+
+    <div class="main mb-3">
+        <div class="mb-3">
+            <label for="dataObjectKey" class="form-label text-white">Key</label>
+            <input type="text" class="form-control @(string.IsNullOrWhiteSpace(CurrentDataObject.Key) ? "is-invalid" : "is-valid")" id="dataObjectKey" value="@CurrentDataObject.Key" 
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentDataObject.Key), changeEventArgs.Value!)) required>
+        </div>    
+        <div class="mb-3">
+            <label for="dataObjectDepth" class="form-label text-white">Depth</label>
+            <input type="text" class="form-control readonly" id="dataObjectDepth" value="@CurrentDataObject.Depth" readonly>
+        </div>
+        <div class="mb-3">
+            <label for="jsonData" class="form-label text-white">JSON object data</label>
+            <textarea rows="10" class="form-control json-text-area @(InvalidJsonMessages.Any() ? "is-invalid" : "is-valid")" id="jsonData" value=@CurrentDataObject.ExpandoObjectJson
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentDataObject.ExpandoObjectJson), changeEventArgs.Value!))>
+            </textarea>
+            @if(InvalidJsonMessages.Any())
+            {                
+                <div class="invalid-feedback" style="display:block;">
+                    @foreach(string invalidJsonMessage in InvalidJsonMessages)
+                    {
+                        @invalidJsonMessage
+                    }
+                </div>
+            }
+        </div>
+        <div>
+            <button class="btn btn-success me-3 @(!CurrentDataObjectIsValid || !CurrentDataObjectIsDirty ? "disabled" : string.Empty)" @onclick="SaveDataObject" disabled="@(!CurrentDataObjectIsValid || !CurrentDataObjectIsDirty)">
+                Save Data Object
+            </button>
+        </div>
+    </div>
+</div>

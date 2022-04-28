@@ -12,9 +12,22 @@ namespace ModuleMaker.Utilities
 {
     public static class GoogleUtilities
     {
+        /// <summary>
+        /// A list of defined languages supported for speech.
+        /// </summary>
         public static IEnumerable<string> SupportedSpeechLanguages { get; } = new List<string>() { "fr", "en" };
+
+        /// <summary>
+        /// The default speech language, used if the text is in a language other than those supported.
+        /// </summary>
         public static string DefaultSpeechLanguage { get; } = "fr-CA" ;
 
+        /// <summary>
+        /// Detects the text's language, translates it if it's in a langbuage other than those supported and synthesizes speech from it.
+        /// </summary>
+        /// <param name="text">The text from which to synthesize speech.</param>
+        /// <param name="triggeredDbContext">An instancce of <see cref="TriggeredDbContext"/>, used to retrieve Google credentials, Google project ID and a temporary directory for the synthesized speech (keys: GoogleCredentialsPath, GoogleProjectId, GoogleSpeechDirectory).</param>
+        /// <returns></returns>
         public static async Task<string?> DetectAndSynthesizeSpeech(string text, TriggeredDbContext triggeredDbContext)
         {
             Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", triggeredDbContext.Settings.GetSetting("GoogleCredentialsPath"));
@@ -82,7 +95,7 @@ namespace ModuleMaker.Utilities
             VoiceSelectionParams voiceSelection = new()
             {
                 LanguageCode = languageCode,
-                SsmlGender = SsmlVoiceGender.Unspecified
+                SsmlGender = SsmlVoiceGender.Unspecified,
             };
             AudioConfig audioConfig = new()
             {

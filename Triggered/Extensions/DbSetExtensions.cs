@@ -3,6 +3,9 @@ using Triggered.Models;
 
 namespace Triggered.Extensions
 {
+    /// <summary>
+    /// A set of <see cref="DbSet{TEntity}"/> extensions for <see cref="Setting"/> to quickly retrieve or save. Manages default values for pre-defined settings.
+    /// </summary>
     public static class DbSetExtensions
     {
         private static readonly Dictionary<string, string> defaultSettings = new()
@@ -51,6 +54,7 @@ namespace Triggered.Utilities
             { "ExternalModulesPath", "Modules" },
             { "ExternalUtilitiesPath", "Utilities" },
             { "ExternalResourcesPath", "Resources" },
+            { "FileWatcherPaths", "" },
             { "MessagesLimit", "1000" },
             { "MessageLevels", "Information, Warning, Error" },
             { "MessageNotificationsEnabled", "False" },
@@ -75,6 +79,12 @@ namespace Triggered.Utilities
             { "DiscordBotToken", "" }
         };
 
+        /// <summary>
+        /// Retrieves a DB <see cref="Setting"/> with the given <paramref name="name"/>. If not found, returns the default value or an empty string if no default value defined.
+        /// </summary>
+        /// <param name="dbSet">From extension, the settings <see cref="DbSet{Setting}"/>.</param>
+        /// <param name="name">The name of the setting to retrieve.</param>
+        /// <returns>The value of the setting, or a default or empty string if not found.</returns>
         public static string GetSetting(this DbSet<Setting> dbSet, string name)
         {
             Setting? setting = dbSet.FirstOrDefault(s => s.Key == name);
@@ -89,6 +99,11 @@ namespace Triggered.Utilities
                 return setting.Value;
         }
 
+        /// <summary>
+        /// Saves a DB <see cref="Setting"/> with the given <paramref name="name"/> and <paramref name="value"/>.
+        /// </summary>
+        /// <param name="dbSet">From extension, the settings <see cref="DbSet{Setting}"/>.</param>
+        /// <param name="name">The name of the setting to create or update.</param>
         public static void SetSetting(this DbSet<Setting> dbSet, string name, string value)
         {
             Setting? setting = dbSet.FirstOrDefault(setting => setting.Key.Equals(name));
@@ -103,6 +118,10 @@ namespace Triggered.Utilities
             }
         }
 
+        /// <summary>
+        /// Populates the DB with the default string value for any default settings that are missing.
+        /// </summary>
+        /// <param name="dbSet">From extension, the settings <see cref="DbSet{Setting}"/>.</param>
         public static void Populate(this DbSet<Setting> dbSet)
         {
             foreach (string key in defaultSettings.Keys)

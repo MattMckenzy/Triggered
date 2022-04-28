@@ -23,6 +23,9 @@ namespace Triggered.Components
         [Inject]
         private TwitchChatService TwitchChatService { get; set; } = null!;
 
+        [Inject]
+        private FileWatchingService FileWatchingService { get; set; } = null!;
+
         [CascadingParameter]
         public MainLayout MainLayout { get; set; } = null!;
 
@@ -90,6 +93,11 @@ namespace Triggered.Components
             "TwitchChatRefreshToken"
         };
 
+        private readonly IEnumerable<string> FileWatcherSettings = new string[]
+        {
+            "FileWatcherPaths"
+        };
+
         private readonly IEnumerable<string> TriggeredSettings = new string[]
         {
             "Host",
@@ -101,6 +109,7 @@ namespace Triggered.Components
             "UtilityTemplate",
             "ExternalUtilitiesPath",
             "ExternalResourcesPath",
+            "FileWatcherPaths",
             "MessagesLimit",
             "MessageLevels",
             "MessageNotificationsEnabled",
@@ -230,7 +239,7 @@ namespace Triggered.Components
             if (!CurrentSettingIsValid || !CurrentSettingIsDirty)
                 return;
 
-            async Task saveSetting(IEnumerable<string>? resetSettings = null, TwitchServiceBase? twitchServiceBase = null)
+            async Task saveSetting(IEnumerable<string>? resetSettings = null, TwitchServiceBase? twitchServiceBase = null, bool stopFileWatcherService = false)
             {
                 using TriggeredDbContext triggeredDbContext = await DbContextFactory.CreateDbContextAsync();
 
@@ -272,7 +281,10 @@ namespace Triggered.Components
 
                 if (CurrentSetting.Key.Equals("TwitchChatUseSecondAccount", StringComparison.InvariantCultureIgnoreCase))
                     await TwitchChatService.Initialize();
-                
+
+                if (stopFileWatcherService)
+                    await FileWatchingService.StopAsync();
+
                 CurrentSettingKeyLocked = true;
 
                 await UpdatePageState();
@@ -302,6 +314,18 @@ namespace Triggered.Components
                     Choice = "Yes",
                     ChoiceColour = "danger",
                     ChoiceAction = async () => await saveSetting(TwitchChatLoginResetSettings, TwitchChatService)
+                });
+            }
+            else if (FileWatcherSettings.Contains(CurrentSetting.Key, StringComparer.InvariantCultureIgnoreCase))
+            {
+                await ModalPromptReference.ShowModalPrompt(new()
+                {
+                    Title = "WARNING: Stopping File Watcher Service!",
+                    Message = $"Changing the value for the setting \"{CurrentSetting.Key}\" will stop the file watcher service! Proceed?",
+                    CancelChoice = "Cancel",
+                    Choice = "Yes",
+                    ChoiceColour = "danger",
+                    ChoiceAction = async () => await saveSetting(stopFileWatcherService: true)
                 });
             }
             else

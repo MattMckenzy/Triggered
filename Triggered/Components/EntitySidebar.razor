@@ -11,24 +11,47 @@
                 string? lastSuperCategory = null;
                 @foreach(KeyValuePair<string, IEnumerable<string>> category in Categories)
                 {
-                    string currentSuperCategory = category.Key.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()!;
-                    string currentCategory = category.Key.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).LastOrDefault()!;
-
-                    if (!currentSuperCategory.Equals(lastSuperCategory) && !currentSuperCategory.Equals(currentCategory))
+                    string currentSuperCategory = string.Empty, currentCategory = string.Empty;
+                    if (UseSuperCategories)
                     {
-                        lastSuperCategory = currentSuperCategory;
-                        <li class="mb-1">
-                            <u class="text-white text-start pe-none opacity-75">
-                                @currentSuperCategory
-                            </u>
-                        </li>
+                        currentSuperCategory = category.Key.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+                        currentCategory = category.Key.Length > currentSuperCategory.Length ? category.Key.Substring(currentSuperCategory.Length+1) : string.Empty;
+
+                        if (!currentSuperCategory.Equals(lastSuperCategory) && !currentSuperCategory.Equals(currentCategory))
+                        {
+                            lastSuperCategory = currentSuperCategory;
+                            <li class="mb-1">
+                                <u class="text-white text-start pe-none opacity-75">
+                                    @if (string.IsNullOrWhiteSpace(currentSuperCategory))
+                                    {
+                                        <i>None</i>
+                                    }
+                                    else
+                                    {
+                                        @currentSuperCategory
+                                    }
+                                </u>
+                            </li>
+                        }
+                    }
+                    else 
+                    {
+                        currentCategory = category.Key;
                     }
 
                     <li class="mb-1">
-                        <button class="btn btn-event rounded collapsed text-white text-start text-truncate mw-100" data-bs-toggle="collapse" data-bs-target="#collapse@(currentCategory.GetHashCode())" aria-expanded="false">
-                            <i class="bi bi-chevron-right"></i> @currentCategory
+                        <button class="btn btn-event rounded collapsed text-white text-start text-truncate mw-100" data-bs-toggle="collapse" data-bs-target="#collapse@($"-{currentSuperCategory.GetHashCode()}-{currentCategory.GetHashCode()}")" aria-expanded="false">
+                            <i class="bi bi-chevron-right"></i> 
+                            @if (string.IsNullOrWhiteSpace(currentCategory))
+                            {
+                                <i>None</i>
+                            }
+                            else
+                            {
+                                @currentCategory
+                            }
                         </button>
-                        <div class="collapse" id="collapse@(currentCategory.GetHashCode())">   
+                        <div class="collapse" id="collapse@($"-{currentSuperCategory.GetHashCode()}-{currentCategory.GetHashCode()}")">   
                             <ul class="list-unstyled fw-normal pb-1 small">   
                                 
                             @foreach (string itemKey in category.Value)
@@ -79,6 +102,9 @@
 
     [Parameter]
     public Dictionary<string, IEnumerable<string>>? Categories { get; set; } = null;
+        
+    [Parameter]
+    public bool UseSuperCategories { get; set; } = false;
             
     [Parameter]
     public string? CurrentItem { get; set; } = null;

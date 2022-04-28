@@ -63,9 +63,10 @@ The web application will let you manage all aspects of TR⚡GGERED.
 
 The left hand side (or top on smaller screens) has the navigation menu and includes the following pages:
 - **Home**: page that contains service start/stop buttons, as well as a filterable list of messages from the service.
-- **Modules**: page used to create and maintain modules that will be triggered by events.
-- **Utilities**: page used to create and maintain reusable code that can be consumed from any module.
-- **Testing Center**: page used to create, maintain and execute tests on any event supported by the service.
+- **Modules**: page used to create and manage modules that will be triggered by events.
+- **Utilities**: page used to create and manage reusable code that can be consumed from any module.
+- **Testing Center**: page used to create, manage and execute tests on any event supported by the service.
+- **Data**: page used to create and manage persisted data objects, for use in modules and utilities. Used in conjuction with the Data Service.
 - **Configuration**: page that lets you change default configuration settings, as well as create and maintain custom settings that can be used in any module.
 - **README**: page showing this README.
 
@@ -128,18 +129,384 @@ The code editor has a couple of features meant to ease coding.
 
 ### Supported Module Entry Arguments
 
-TwitchService
-TwitchChatService
-ObsService
-DiscordService
-DataService
-QueueService
-MemoryCache
-ModuleService
-MessagingService
-IDbContextFactory<TriggeredDbContext>  
+TR⚡GGERED offers a suite of services that can be used in modules. Simply add them as arguments to the entry method, and the calling event will inject them into it.
+
+Here's a quick list and description of the available services. Descriptions of their public properties and methods can be found below:
+- `TwitchService`: this service provides access to a `TwitchAPI` instance authenticated and connected through the configured broadcaster account. `TwitchAPI` can be used to easily call any of Twitch's available API methods.
+- `TwitchChatService`: this service provides access to a `TwitchClient` instance, as well as a different `TwitchAPI` instance, both connected either through the secondary bot account, if configured, or the main broadcaster account. `TwitchClient` can be used to interact with any channel's twitch chat.
+- `ObsService`: this service provides access to a `OBSWebsocket` instance, which can be used to access all OBS websocket methods. Provides means to modify and control OBS.
+- `DiscordService`: this service provides access to three instances used to interact with Discord through the configured bot account. The `DiscordSocketClient`, `InteractionService` and `CommandService`.
+- `FileWatchingService`: Coming soon...
+- `DataService`: this service provides a way to save and retrieve `dynamic` `ExpandoObject` objects. Very useful to persist any type of serializable object accross module calls.
+- `QueueService`: this service provides a mean to categorize and queue functions, to ensure they don't get executed simultaneous across multiple triggered events and module calls.
+- `ModuleService`: this service provides means to execute modules, in a couple of ways. You can trigger an event with custom event arguments, or execute an individual module with its ID. 
+- `MessagingService`: this service provides some methods to add and manage messages that are visible on the Home page of the web app. See messages above.
+- `IDbContextFactory<TriggeredDbContext>`: this service can create an instance of `TriggeredDbContext`, which is used to access TR⚡GGERED's database. Useful to store annd retrieve persisted settings.
+- `MemoryCache`: this service provides a quick way to cache and retrieve non-persisted information as bytes.
+
+Below goes into detail describing eacch service with some more descriptions, a list of their useful public properties and an example of its use. For more examples, please have a look at the available Modules and Utilities in the ModuleMaker project.
+
+#### TwitchService
+
+The `TwitchService` instance will be the main way you can interact with Twitch. You can use the public instance of the `TwitchAPI` to quickly call API methods ranging from creating polls to ban users. If you would like to interact with the Twitch chat, please see the `TwitchChatService` and its `TwitchClient` below.
+
+The following are its useful public properties and an example:
+```csharp
+/// <summary>
+/// Class representing interactions with the Twitch PubSub. Please see the TwitchLib PubSub documentation here: https://swiftyspiffy.com/TwitchLib/PubSub/index.html
+/// </summary>
+public TwitchPubSub TwitchPubSub { get; set; } = new();
+
+/// <summary>
+/// Class representing interactions with the Twitch EventSub. Please see the TwitchLib EventSub GitHub page here: https://github.com/TwitchLib/TwitchLib.EventSub.Webhooks
+/// </summary>
+public ITwitchEventSubWebhooks TwitchEventSubWebhooks { get; set; } = null!;
+
+/// <summary>
+/// Class offering easy way to authenticate and consume Twitch API. Please see the TwitchLib API documentation here: https://swiftyspiffy.com/TwitchLib/Api/index.html
+/// </summary>
+public TwitchAPI TwitchAPI { get; private set; } = new();
+            
+/// <summary>
+/// Event handler that is invoked when the service is stopped, starting and started.
+/// </summary>
+public event EventHandler<EventArgs>? ServiceStatusChanged;
+
+/// <summary>
+/// Returns true if the Twitch Service is active.
+/// </summary>
+public bool? IsActive { get; set; } = false;
+
+/// <summary>
+/// If the Twitch Service is logged in, will be populated with the logged in user's information.
+/// </summary>
+public User? User { get; set; }
+
+/// <summary>
+/// If the Twitch Service is logged in, will be populated with the configured channel's information.
+/// </summary>
+public ChannelInformation? ChannelInformation { get; set; }
+
+/// <summary>
+/// The name of the channel, taken from configuration settings (key: TwitchChannel).
+/// </summary>
+public string ChannelName { get { return _dbContextFactory.CreateDbContext().Settings.GetSetting($"TwitchChannelName"); } }
+
+/// <summary>
+/// The name of the user, taken from configuration settings (key: TwitchUserName).
+/// </summary>
+public string UserName { get { return _dbContextFactory.CreateDbContext().Settings.GetSetting($"TwitchUserName"); } }
+
+/// Example of TwitchAPI use. Passing the access token to TwitchAPI methods is unecessary as it can pull it from the database when needed.
+public ExpandoObject GetTwitchUSer(string userId)
+{            
+    ExpandoObject? user;
+    GetUsersResponse usersResponse = await twitchService.TwitchAPI.Helix.Users.GetUsersAsync(new List<string> { userId });
+    User? twitchUser = usersResponse.Users.FirstOrDefault();
+    if (twitchUser != null)
+    {
+        user = new ExpandoObject();
+        ((dynamic)user).Expires = DateTime.Now + TimeSpan.FromHours(1);
+        ((dynamic)user).Name = twitchUser.DisplayName;
+        ((dynamic)user).Id = twitchUser.Id;
+        ((dynamic)user).Login = twitchUser.Login;
+        ((dynamic)user).ProfileImageUrl = twitchUser.ProfileImageUrl;
+        ((dynamic)user).Type = twitchUser.Type;
+    }
+
+    return user;
+}
+```
+
+### TwitchChatService
+
+The `TwitchChatService` instance will be the main way you can interact with Twitch Chat. You can use the public instance of the `TwitchClient` to send messages to any joined channel.
+
+The following are its useful public properties and an example:
+```csharp
+/// <summary>
+/// Class offering easy way to interact with Twitch Chat. Please see the TwitchLib Client documentation here: https://swiftyspiffy.com/TwitchLib/Client/index.html
+/// </summary>
+public TwitchClient TwitchClient { get; set; } = new();
+
+/// <summary>
+/// Class offering easy way to authenticate and consume Twitch API.  Please see the TwitchLib API documentation here: https://swiftyspiffy.com/TwitchLib/Api/index.html
+/// </summary>
+public TwitchAPI TwitchAPI { get; private set; } = new();
+            
+/// <summary>
+/// Event handler that is invoked when the service is stopped, starting and started.
+/// </summary>
+public event EventHandler<EventArgs>? ServiceStatusChanged;
+
+/// <summary>
+/// Returns true if the Twitch service has been started.
+/// </summary>
+public bool? IsActive { get; set; } = false;
+
+/// <summary>
+/// If the Twitch Service is logged in, will be populated with the logged in user's information.
+/// </summary>
+public User? User { get; set; }
+
+/// <summary>
+/// If the Twitch Service is logged in, will be populated with the configured channel's information.
+/// </summary>
+public ChannelInformation? ChannelInformation { get; set; }
+
+/// <summary>
+/// The name of the channel, taken from configuration settings (key: TwitchChatChannelName).
+/// </summary>
+public string ChannelName { get { return _dbContextFactory.CreateDbContext().Settings.GetSetting($"TwitchChatChannelName"); } }
+
+/// <summary>
+/// The name of the user, taken from configuration settings (key: TwitchChatUserName).
+/// </summary>
+public string UserName { get { return _dbContextFactory.CreateDbContext().Settings.GetSetting($"TwitchChatUserName"); } }
+
+/// Example of TwitchClient use. If you wish to send a message to a channel other than the one currerntly defined in ChannelName, you must join it as shown below.
+public static Task<bool> SendMessage(OnChatCommandReceivedArgs onChatCommandReceivedArgs, TwitchChatService chatService)
+{
+    if (onChatCommandReceivedArgs.Command.CommandText.Equals("bananeorange", StringComparison.InvariantCultureIgnoreCase))
+    {
+        chatService.TwitchClient.JoinChannel("MattMckenzy");
+        chatService.TwitchClient.SendMessage("MattMckenzy", "🍌🍊", false);
+    }
+
+    return Task.FromResult(true);
+}
+```
+
+### ObsService
+
+The `ObsService` instance will be the main way you can interact with OBS. It offers ways to change any scene and source item along with all of their properties. 
+
+The following are its useful public properties and an example:
+```csharp
+/// <summary>
+/// Class offering ways to interact and control OBS through it's scene and source items and their properties. See this page for more information: https://github.com/BarRaider/obs-websocket-dotnet
+/// </summary>
+public OBSWebsocket OBSWebsocket { get; } = new();
+
+/// <summary>
+/// Event handler that is invoked when the service is stopped, starting and started.
+/// </summary>
+public event EventHandler<EventArgs>? ServiceStatusChanged;
+
+/// <summary>
+/// Returns true if the OBS service has been started.
+/// </summary>
+public bool? IsActive { get; set; } = false;
+
+// Example of OBSWebsoccket use. The following method sets a new TextGDIPlus text as well as a new image in their respective scene items.
+public Task ShowFollowSplash(string userName, ObsService obsService)
+{
+    TriggeredDbContext triggeredDbContext = await triggeredDbContextFactory.CreateDbContextAsync();
+
+    TextGDIPlusProperties properties = obsService.OBSWebsocket.GetTextGDIPlusProperties("FollowText");
+    properties.Text = $"Thank you for the follow!\r\nMerci beaucoup pour le suivi!\r\n{userName}";
+    obsService.OBSWebsocket.SetTextGDIPlusProperties(properties);
+
+    SourceSettings mediaSourceSettings = obsService.OBSWebsocket.GetSourceSettings("FollowImage", "image_source");
+    mediaSourceSettings.Settings["file"] = "followimage.png";
+    obsService.OBSWebsocket.SetSourceSettings("FollowImage", mediaSourceSettings.Settings);
+
+    await OBSSceneUtilities.PlayMediaSource(obsService, chosenSound.FullName, "FollowSound", "FollowSplash", "Animations");
+}
+```
+
+### DiscordService
+
+The `DiscordService` instance will be the main way you can interact with Discord. It offers a connected instance of `DiscordSocketClient` which will be your main way of manipulating any Discord entity the connected bot has access to. 
+
+The following are its useful public properties and an example:
+```csharp
+    /// <summary>
+    /// Class offering methods to interact with Discord guilds, channels, users and more, by means of an authenticated bot token. View the page here for more information: https://discordnet.dev/api/Discord.WebSocket.DiscordSocketClient.html
+    /// </summary>
+    public DiscordSocketClient DiscordSocketClient { get; }
+
+    /// <summary>
+    /// Event handler that is invoked when the service is stopped, starting and started.
+    /// </summary>
+    public event EventHandler<EventArgs>? ServiceStatusChanged;
+
+    /// <summary>
+    /// Returns true if the Discord Service has been started.
+    /// </summary>
+    public bool? IsActive { get; set; } = false;
+
+    // Example of DisccordSocketClient use.
+    public static async Task<bool> SendToDiscord(OnMessageReceivedArgs eventArgs, DiscordService discordSevice, DataService dataService, TwitchService twitchService, TwitchChatService twitchChatService, MessagingService messagingService, IDbContextFactory<TriggeredDbContext> triggeredDbContextFactory)
+    {
+        if (eventArgs.ChatMessage.Username.Equals(twitchChatService.UserName, StringComparison.InvariantCultureIgnoreCase) && eventArgs.ChatMessage.Message.StartsWith("From Discord user"))
+            return true;
+
+        SocketTextChannel? channel = discordSevice.DiscordSocketClient.GetGuild(ulong.Parse(triggeredDbContext.Settings.GetSetting("DiscordGuildId")))?
+                .GetTextChannel(ulong.Parse(triggeredDbContext.Settings.GetSetting("DiscordSyncTextChannelId")));
+
+        if (channel != null)
+        {
+            ExpandoObject? user = await TwitchUserUtilities.GetTwitchUser(dataService, twitchService, messagingService, eventArgs.ChatMessage.UserId);
+
+            if (user != null)
+            {
+                await channel.SendMessageAsync(embed: new EmbedBuilder()
+                    .WithUrl($"https://twitch.tv/{twitchService.ChannelName}")
+                    .WithColor(Color.DarkTeal)
+                    .WithDescription(eventArgs.ChatMessage.Message)
+                    .WithAuthor(new EmbedAuthorBuilder()
+                        .WithName(eventArgs.ChatMessage.DisplayName)
+                        .WithUrl($"https://twitch.tv/{(string)((dynamic)user).Login}")
+                        .WithIconUrl((string)((dynamic)user).ProfileImageUrl))
+                    .Build());
+            }               
+        }
+
+        return true;
+    }
+```
+
+### FileWatcherServie
+
+Coming Soon...
+
+### DataService
+
+The `DataService` instance can you help you persist data, letting you store and retrieve them through a dot-syntax key (i.e "Twitch.Users.MattMckenzy").  The key syntax can be userd to create parent-child relationships with the persisted data and easily retrieve all children of a specific object (i.e. "Twitch.Users" retrieves "Twitch.Users.MattMckenzy" and "Twitch.Users.SirSquad"). 
+
+The following are its useful public properties and an example:
+```csharp
+    /// <summary>
+    /// Saves the given <see cref="ExpandoObject"/> under the given dot-syntax key.
+    /// </summary>
+    /// <param name="key">Dot-syntax key (i.e. "Twitch.Users.MattMckenzy").</param>
+    /// <param name="expandoObject">The <see cref="ExpandoObject"/> to save under the given key.</param>
+    public async Task SetObject(string key, ExpandoObject expandoObject) {...}
+
+    /// <summary>
+    /// Returns the <see cref="ExpandoObject"/> stored at the given dot-syntax key, or null if it doesn't exist.
+    /// </summary>
+    /// <param name="key">The dot-syntax key used to retrieve the <see cref="ExpandoObject"/> (i.e. "Twitch.Users.MattMckenzy").</param>
+    /// <returns>The <see cref="ExpandoObject"/>, or null if nothing was found at the given key.</returns>
+    public async Task<ExpandoObject?> GetObject(string key) {...}
+
+    /// <summary>
+    /// Retrieves all <see cref="ExpandoObject"/>s that are children of the given dot-syntax key.
+    /// </summary>
+    /// <param name="key">The dot-syntax key from which to retrieve children. (i.e. "Twitch.Users" retrieves "Twitch.Users.MattMckenzy" and "Twitch.Users.SirSquad").</param>
+    /// <returns>An enumerable of children <see cref="ExpandoObject"/>.</returns>
+    public async Task<IEnumerable<ExpandoObject?>> GetChildren(string key) {...}
+
+    /// <summary>
+    /// Removes the <see cref="ExpandoObject"/> stored at the given dot-syntax key, or does nothing if it doesn't exist.
+    /// </summary>
+    /// <param name="key">The dot-syntax key used of the <see cref="ExpandoObject"/> to remove (i.e. "Twitch.Users.MattMckenzy").</param>
+    public async Task RemoveObject(string key) {...}
+
+// Example of using the DataService to cache and retrieve a Twitch user
+public static async Task<ExpandoObject?> GetTwitchUser(DataService dataService, TwitchService twitchService, MessagingService messagingService, string userId)
+{
+    ExpandoObject? user = await dataService.GetObject($"Twitch.Users.{userId}");
+    if (user == null || ((dynamic)user).Expires < DateTime.Now)
+    {
+        GetUsersResponse usersResponse = await twitchService.TwitchAPI.Helix.Users.GetUsersAsync(new List<string> { userId });
+        User? twitchUser = usersResponse.Users.FirstOrDefault();
+        if (twitchUser != null)
+        {
+            user = new ExpandoObject();
+            ((dynamic)user).Expires = DateTime.Now + TimeSpan.FromHours(1);
+            ((dynamic)user).Name = twitchUser.DisplayName;
+            ((dynamic)user).Id = twitchUser.Id;
+            ((dynamic)user).Login = twitchUser.Login;
+            ((dynamic)user).ProfileImageUrl = twitchUser.ProfileImageUrl;
+            ((dynamic)user).Type = twitchUser.Type;
+            await dataService.SetObject($"Twitch.Users.{userId}", user);
+        }
+        else
+        {
+            await messagingService.AddMessage("Could not retrieve user from Twitch.", MessageCategory.Module, LogLevel.Error);
+            return null;
+        }
+    }
+
+    return user;
+}
+```
+
+### QueueService
+
+The `QueueService` instance will be the main way you can interact with Discord. It offers a connected instance of `DiscordSocketClient` which will be your main way of manipulating any Discord entity the connected bot has access to. 
+
+The following are its useful public methods and an example:
+```csharp
+/// <summary>
+/// Adds a delegate function to a new or existing queue denoted by the given queue key.
+/// </summary>
+/// <param name="queueKey">The unique key describing under which queue the delegate function should be added.</param>
+/// <param name="func">The delegate function to queue. It cannot accept arguments and must return Task<bool>. The boolean return will decide whether the queue continues to execute functions (true) or is cancelled and all queue items are cleared (false).</param>
+/// <param name="exceptionPreamble">String that begins any exception messages sent to the messaging service when a queued function encounters an unhandled exception.</param>
+public async Task Add(string queueKey, Func<Task<bool>> func, string? exceptionPreamble = null) {...}
+             
+/// <summary>
+/// Clears the queue found under the given queue key. If no queue was found, returns without exception.
+/// </summary>
+/// <param name="queueKey">The unique key describing which queue should be cleared.</param>
+public Task Clear(string queueKey) {...}
+
+// Example of queue usage. This function queues an OBS scene change under "SceneChange", so that any subsequent scene changes happen after this one is completed. It returns true so that any subsequently queued functions are not cancelled.
+public static async Task<bool> ShowCamReward(ChannelPointsCustomRewardRedemptionArgs eventArgs, QueueService queueService, ObsService obsService)
+{
+    if (!eventArgs.Notification.Event.Reward.Title.Equals("Full Screen Cam", StringComparison.InvariantCultureIgnoreCase))
+        return true;
+
+    await queueService.Add("SceneChange", async () =>
+    {
+        string currentScene = obsService.OBSWebsocket.GetCurrentScene().Name;
+        obsService.OBSWebsocket.SetCurrentScene("Full Camera");
+        await Task.Delay(10000);
+        obsService.OBSWebsocket.SetCurrentScene(currentScene);
+
+        return true;
+    });
+
+    return false;
+}
+```
+
+### ModuleService
+
+The `ModuleService` instance will be the main way you can interact with Discord. It offers a connected instance of `DiscordSocketClient` which will be your main way of manipulating any Discord entity the connected bot has access to. 
+
+The following are its useful public properties and an example:
+```csharp
+```
+
+### MessagingService
+
+The `MessagingService` instance will be the main way you can interact with Discord. It offers a connected instance of `DiscordSocketClient` which will be your main way of manipulating any Discord entity the connected bot has access to. 
+
+The following are its useful public properties and an example:
+```csharp
+```
+
+### IDbContextFactory<TriggeredDbContext>
+
+The `IDbContextFactory<TriggeredDbContext>` instance will be the main way you can interact with Discord. It offers a connected instance of `DiscordSocketClient` which will be your main way of manipulating any Discord entity the connected bot has access to. 
+
+The following are its useful public properties and an example:
+```csharp
+```
+
+### MemoryCache
+
+The `MemoryCache` instance will provides an easy way to store and retrieve any object, as bytes, that last for the duration of the service's runtime. MemoryCache documentation and examples can be seen here: https://docs.microsoft.com/en-us/dotnet/api/system.runtime.caching.memorycache?view=dotnet-plat-ext-6.0
 
 ## Testing Center Page
+
+Coming soon...
+
+## Data Page
 
 Coming soon...
 
@@ -152,6 +519,8 @@ Coming soon...
 Coming soon...
 
 # Module Maker
+
+Coming soon...
 
 # Proxy
 

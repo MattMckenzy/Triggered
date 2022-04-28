@@ -4,12 +4,21 @@ using Triggered.Models;
 
 namespace Triggered.Services
 {
+    /// <summary>
+    /// A singleton service that defines methods to encrypt and decrypt sensitive text.
+    /// </summary>
     public class EncryptionService
     {
         private readonly IDbContextFactory<TriggeredDbContext> _dbContextFactory;
         private readonly IConfiguration _configuration;
         private readonly MessagingService _messagingService;
 
+        /// <summary>
+        /// Default contructor with injected services.
+        /// </summary>
+        /// <param name="dbContextFactory">Injected <see cref="IDbContextFactory{TContext}"/> of <see cref="TriggeredDbContext"/>.</param>
+        /// <param name="configuration">Injected <see cref="IConfiguration"/>.</param>
+        /// <param name="messagingService">Injected <see cref="Services.MessagingService"/>.</param>
         public EncryptionService(IDbContextFactory<TriggeredDbContext> dbContextFactory, IConfiguration configuration, MessagingService messagingService)
         {
             _dbContextFactory = dbContextFactory;
@@ -17,6 +26,12 @@ namespace Triggered.Services
             _messagingService = messagingService;
         }
 
+        /// <summary>
+        /// Encrypts the given <paramref name="value"/> <see cref="string"/> with the given <see cref="Vector"/> <paramref name="key"/>.
+        /// </summary>
+        /// <param name="key">The unique identifier of the saved <see cref="Vector"/>.</param>
+        /// <param name="value">The text to encrypt.</param>
+        /// <returns>The encrypted <see cref="string"/>.</returns>
         public async Task<string> Encrypt(string key, string value)
         {
             using Aes aes = Aes.Create();
@@ -42,6 +57,12 @@ namespace Triggered.Services
             }
         }
 
+        /// <summary>
+        /// Decrypts the given <paramref name="value"/> <see cref="string"/> with the given <see cref="Vector"/> <paramref name="key"/>.
+        /// </summary>
+        /// <param name="key">The unique identifier of the saved <see cref="Vector"/>.</param>
+        /// <param name="value">The text to decrypt.</param>
+        /// <returns>The decrypted <see cref="string"/>.</returns>
         public async Task<string> Decrypt(string key, string value)
         {
             using TriggeredDbContext triggeredDbContext = await _dbContextFactory.CreateDbContextAsync();
@@ -69,7 +90,7 @@ namespace Triggered.Services
             }
         }
 
-        public async Task SaveVector(string key, string value)
+        private async Task SaveVector(string key, string value)
         {
             using TriggeredDbContext triggeredDbContext = await _dbContextFactory.CreateDbContextAsync();
 

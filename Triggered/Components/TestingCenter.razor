@@ -9,6 +9,7 @@
         <EntitySidebar Title="Event Tests"
             Items=@EventTestNames
             Categories=@CategoryEventTests
+            UseSuperCategories=true
             CreateCallback=CreateEventTest
             DeleteCallback=DeleteEventTest
             LoadCallback=LoadEventTest
@@ -17,8 +18,8 @@
 
     <div class="main mb-3">
         <div class="mb-3">
-            <label for="moduleName" class="form-label text-white">Name</label>
-            <input type="text" class="form-control @(string.IsNullOrWhiteSpace(CurrentEventTest.Name) ? "is-invalid" : "is-valid")" id="moduleName" value="@CurrentEventTest.Name" 
+            <label for="eventTestName" class="form-label text-white">Name</label>
+            <input type="text" class="form-control @(string.IsNullOrWhiteSpace(CurrentEventTest.Name) ? "is-invalid" : "is-valid")" id="eventTestName" value="@CurrentEventTest.Name" 
                 @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentEventTest.Name), changeEventArgs.Value!)) required>
         </div>    
         <div class="mb-3">

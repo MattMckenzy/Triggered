@@ -1,6 +1,4 @@
 ﻿using Discord;
-using Discord.Commands;
-using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using Triggered.Extensions;
@@ -9,6 +7,9 @@ using static Discord.WebSocket.DiscordSocketClient;
 
 namespace Triggered.Services
 {
+    /// <summary>
+    /// A singleton service that connects to Discord with a configured bot access token ("DiscordBotToken" <see cref="Setting"/>), registers all Discord events and exposes a <see cref="Discord.WebSocket.DiscordSocketClient"/> for further Discord interaction.
+    /// </summary>
     public partial class DiscordService
     {
         #region Private Properties
@@ -24,18 +25,32 @@ namespace Triggered.Services
 
         #region Public Properties
 
-        public DiscordSocketClient DiscordClient { get; }
-        public InteractionService InteractionService { get; }
-        public CommandService CommandService { get; }
+        /// <summary>
+        /// Class offering methods to interact with Discord guilds, channels, users and more, by means of an authenticated bot token. View the page here for more information: https://discordnet.dev/api/Discord.WebSocket.DiscordSocketClient.html
+        /// </summary>
+        public DiscordSocketClient DiscordSocketClient { get; }
 
-
+        /// <summary>
+        /// Event handler that is invoked when the service is stopped, starting and started.
+        /// </summary>
         public event EventHandler<EventArgs>? ServiceStatusChanged;
+
+        /// <summary>
+        /// Returns true if the Discord Service has been started.
+        /// </summary>
         public bool? IsActive { get; set; } = false;
 
         #endregion
 
         #region Constructor
 
+        /// <summary>
+        /// Default constructor with injected services.
+        /// </summary>
+        /// <param name="dbContextFactory">Injected <see cref="IDbContextFactory{TContext}"/> of <see cref="TriggeredDbContext"/>.</param>
+        /// <param name="messagingService">Injected <see cref="Services.MessagingService"/>.</param>
+        /// <param name="encryptionService">Injected <see cref="Services.EncryptionService"/>.</param>
+        /// <param name="moduleService">Injected <see cref="Services.ModuleService"/>.</param>
         public DiscordService(IDbContextFactory<TriggeredDbContext> dbContextFactory, MessagingService messagingService, EncryptionService encryptionService, ModuleService moduleService)
         {
             DbContextFactory = dbContextFactory;
@@ -44,24 +59,23 @@ namespace Triggered.Services
             ModuleService = moduleService;
             CancellationTokenSource = new();
 
-            DiscordClient = new DiscordSocketClient();
-            InteractionService = new(DiscordClient);
-            CommandService = new();
+            DiscordSocketClient = new DiscordSocketClient();
 
             ModuleService.RegisterParameterObjects(new (string, Type, object)[]
             {
                 (nameof(DiscordService), typeof(DiscordService), this)
             });
 
-            ModuleService.InitializeSupportedEventsAndParameters(DiscordClient);
-            ModuleService.InitializeSupportedEventsAndParameters(InteractionService);
-            ModuleService.InitializeSupportedEventsAndParameters(CommandService);
+            ModuleService.InitializeSupportedEventsAndParameters(DiscordSocketClient);
         }
 
         #endregion
 
         #region Control Methods
 
+        /// <summary>
+        /// Starts the service.
+        /// </summary>
         public Task StartAsync()
         {
             CancellationTokenSource = new CancellationTokenSource();
@@ -79,19 +93,17 @@ namespace Triggered.Services
                         return;
                     }
 
-                    ModuleService.RegisterEvents(DiscordClient);
-                    ModuleService.RegisterEvents(InteractionService);
-                    ModuleService.RegisterEvents(CommandService);
+                    await ModuleService.RegisterEvents(DiscordSocketClient);
 
                     await MessagingService.AddMessage("Discord service starting.", MessageCategory.Service, LogLevel.Debug);
                     IsActive = null;
                     ServiceStatusChanged?.Invoke(this, new EventArgs());
 
-                    DiscordClient.Connected += DiscordClient_Connected;
-                    DiscordClient.Disconnected += DiscordClient_Disconnected;
+                    DiscordSocketClient.Connected += DiscordClient_Connected;
+                    DiscordSocketClient.Disconnected += DiscordClient_Disconnected;
 
-                    await DiscordClient.LoginAsync(TokenType.Bot, discordBotToken);
-                    await DiscordClient.StartAsync();
+                    await DiscordSocketClient.LoginAsync(TokenType.Bot, discordBotToken);
+                    await DiscordSocketClient.StartAsync();
 
                     while (!CancellationTokenSource.Token.IsCancellationRequested)
                     {
@@ -102,11 +114,9 @@ namespace Triggered.Services
                 {
                     disconnections = 0;
 
-                    ModuleService.DeregisterEvents(DiscordClient);
-                    ModuleService.DeregisterEvents(InteractionService);
-                    ModuleService.DeregisterEvents(CommandService);
+                    await ModuleService.DeregisterEvents(DiscordSocketClient);
 
-                    await DiscordClient.LogoutAsync();
+                    await DiscordSocketClient.LogoutAsync();
 
                     IsActive = false;
                     ServiceStatusChanged?.Invoke(this, new EventArgs());
@@ -118,6 +128,9 @@ namespace Triggered.Services
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Stops the service.
+        /// </summary>
         public Task StopAsync()
         {
             CancellationTokenSource.Cancel();
@@ -149,7 +162,7 @@ namespace Triggered.Services
 
                 using TriggeredDbContext triggeredDbContext = await DbContextFactory.CreateDbContextAsync();
                 string discordBotToken = await EncryptionService.Decrypt("DiscordBotToken", triggeredDbContext.Settings.GetSetting("DiscordBotToken"));
-                _ = Task.Run(async () => await DiscordClient.LoginAsync(TokenType.Bot, discordBotToken));
+                _ = Task.Run(async () => await DiscordSocketClient.LoginAsync(TokenType.Bot, discordBotToken));
             }
 
             lastDisconnection = DateTime.Now;

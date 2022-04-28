@@ -13,6 +13,9 @@ namespace ModuleMaker.Modules.Twitch
 {
     public class FirstMessageSplash
     {
+        /// <summary>
+        /// When a first-time chatter chat message is received, plays a random sound shown along with a random image with the "FolllowSplash" scene in OBS. Also sends first-time messages in Twitch Chat.
+        /// </summary>
         public async static Task<bool> ShowFirstMessageHeffry(OnRitualNewChatterArgs eventArgs, QueueService queueService, ObsService obsService, TwitchService twitchService, TwitchChatService twitchChatService, IDbContextFactory<TriggeredDbContext> triggeredDbContextFactory)
         {
             await queueService.Add("TopSplash", async () => {

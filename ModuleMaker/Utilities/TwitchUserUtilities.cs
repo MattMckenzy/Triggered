@@ -12,6 +12,14 @@ namespace ModuleMaker.Utilities
 {
     public static class TwitchUserUtilities
     {
+        /// <summary>
+        /// Retrieves from cache or from Twitch a dynamic <see cref="ExpandoObject"/> containing information on a Twitch user.
+        /// </summary>
+        /// <param name="dataService">An instance of <see cref="DataService"/> that is used to cache the retrieved Twitch user.</param>
+        /// <param name="twitchService">An instance of <see cref="TwitchService"/> that is used to retrieve a user.</param>
+        /// <param name="messagingService">An instance of <see cref="MessagingService"/> that is used to warn of issues with the Twitch API communication.</param>
+        /// <param name="userId">The ID of the user to retrieve.</param>
+        /// <returns>An <see cref="ExpandoObject"/> that contains the following properties: Expires, Name, Id, Login, ProfileImageUrl, Type.</returns>
         public static async Task<ExpandoObject?> GetTwitchUser(DataService dataService, TwitchService twitchService, MessagingService messagingService, string userId)
         {
             ExpandoObject? user = await dataService.GetObject($"Twitch.Users.{userId}");

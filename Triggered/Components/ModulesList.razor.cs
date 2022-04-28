@@ -202,7 +202,7 @@ namespace Triggered.Components
             {
                 triggeredDbContext.Modules.Update(CurrentModule);
                 await triggeredDbContext.SaveChangesAsync();
-                ModuleService.UpdateModule(CurrentModule);
+                await ModuleService.UpdateModule(CurrentModule);
                 await MessagingService.AddMessage($"Succesfully updated Module \"{CurrentModule.Name}\"!", MessageCategory.Module);
 
                 await ModalPromptReference.ShowModalPrompt(new()
@@ -216,7 +216,7 @@ namespace Triggered.Components
             {
                 triggeredDbContext.Modules.Add(CurrentModule);
                 await triggeredDbContext.SaveChangesAsync();
-                ModuleService.AddModule(CurrentModule);
+                await ModuleService.AddModule(CurrentModule);
                 await MessagingService.AddMessage($"Succesfully added new Module \"{CurrentModule.Name}\"!", MessageCategory.Module);
 
                 await ModalPromptReference.ShowModalPrompt(new()
@@ -255,7 +255,7 @@ namespace Triggered.Components
                     using TriggeredDbContext triggeredDbContext = await DbContextFactory.CreateDbContextAsync();
                     triggeredDbContext.Remove(module);
                     await triggeredDbContext.SaveChangesAsync();
-                    ModuleService.RemoveModule((int)module.Id!, CurrentModule.Event);
+                    await ModuleService.RemoveModule((int)module.Id!, CurrentModule.Event);
                     await MessagingService.AddMessage($"Succesfully removed the Module \"{module.Name}\"!", MessageCategory.Module);
 
                     await ModalPromptReference.ShowModalPrompt(new()
@@ -386,7 +386,7 @@ namespace Triggered.Components
                     {
                         IEnumerable<string> warnings;
                         IEnumerable<string> errors;
-                        (CompiledModule, warnings, errors) = ModuleService.CompileAndAnalyzeModule(CurrentModule);
+                        (CompiledModule, warnings, errors) = ModuleService.AnalyzeAndCompileModule(CurrentModule);
 
                         codeAnalysisResultsString = string.Empty;
                         if (errors.Any())

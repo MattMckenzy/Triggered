@@ -3,17 +3,30 @@ using Triggered.Models;
 
 namespace Triggered.Services
 {
+    /// <summary>
+    /// A singleton service that provides means to queue tasks and delegate functions under then-keyed queues, either instantly created or retrieved and used.
+    /// </summary>
     public class QueueService
     {
         private readonly ConcurrentDictionary<string, (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<(Func<Task<bool>>, string?)>)> Queues = new();
 
-        public MessagingService MessagingService { get; }
+        private MessagingService MessagingService { get; }
 
+        /// <summary>
+        /// Default constructor with injected <see cref="Services.MessagingService"/>.
+        /// </summary>
+        /// <param name="messagingService">Injected <see cref="Services.MessagingService"/>.</param>
         public QueueService(MessagingService messagingService)
         {
             MessagingService = messagingService;
         }
 
+        /// <summary>
+        /// Adds a delegate function to a new or existing queue denoted by the given queue key.
+        /// </summary>
+        /// <param name="queueKey">The unique key describing under which queue the delegate function should be added.</param>
+        /// <param name="func">The delegate function to queue. It cannot accept arguments and must return Task<bool>. The boolean return will decide whether the queue continues to execute functions (true) or is cancelled and all queue items are cleared (false).</param>
+        /// <param name="exceptionPreamble">String that begins any exception messages sent to the messaging service when a queued function encounters an unhandled exception.</param>
         public async Task Add(string queueKey, Func<Task<bool>> func, string? exceptionPreamble = null)
         {
             ConcurrentQueue<(Func<Task<bool>>, string?)> newQueue = new();
@@ -30,12 +43,26 @@ namespace Triggered.Services
 
             await RunQueue(queueKey);
         }
+             
+        /// <summary>
+        /// Clears the queue found under the given queue key. If no queue was found, returns without exception.
+        /// </summary>
+        /// <param name="queueKey">The unique key describing which queue should be cleared.</param>
+        public Task Clear(string queueKey)
+        {
+            if (Queues.TryRemove(queueKey, out (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<(Func<Task<bool>>, string?)>) queue))
+            {
+                queue.Item1.Cancel();
+            }
+
+            return Task.CompletedTask;
+        }
 
         private Task RunQueue(string queueKey)
         {
             if (Queues.TryGetValue(queueKey, out (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<(Func<Task<bool>>, string?)>) queue))
             {
-                _ = Task.Run(async () => 
+                _ = Task.Run(async () =>
                 {
                     await queue.Item2.WaitAsync();
 
@@ -64,16 +91,6 @@ namespace Triggered.Services
 
                 },
                 queue.Item1.Token);
-            }
-
-            return Task.CompletedTask;
-        }
-
-        public Task Clear(string queueKey)
-        {
-            if (Queues.TryRemove(queueKey, out (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<(Func<Task<bool>>, string?)>) queue))
-            {
-                queue.Item1.Cancel();
             }
 
             return Task.CompletedTask;

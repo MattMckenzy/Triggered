@@ -46,6 +46,7 @@ builder.Services.AddSingleton<TwitchService>();
 builder.Services.AddSingleton<TwitchChatService>();
 builder.Services.AddSingleton<ObsService>();
 builder.Services.AddSingleton<DiscordService>();
+builder.Services.AddSingleton<FileWatchingService>();
 builder.Services.AddSingleton<EncryptionService>();
 builder.Services.AddSingleton<ModuleService>();
 builder.Services.AddSingleton<GitHubService>();
@@ -75,6 +76,7 @@ using (IServiceScope scope = app.Services.CreateAsyncScope())
 
     ObsService obsService = scope.ServiceProvider.GetRequiredService<ObsService>();
     DiscordService discordService = scope.ServiceProvider.GetRequiredService<DiscordService>();
+    FileWatchingService fileWatchingService = scope.ServiceProvider.GetRequiredService<FileWatchingService>();
 
     ModuleService moduleService = scope.ServiceProvider.GetRequiredService<ModuleService>();
     await moduleService.AddUtilities();
@@ -92,6 +94,8 @@ using (IServiceScope scope = app.Services.CreateAsyncScope())
         actions.Add(async () => await obsService.StartAsync());
 
         actions.Add(async () => await discordService.StartAsync());
+
+        actions.Add(async () => await fileWatchingService.StartAsync());
 
         Parallel.Invoke(actions.ToArray());
     }

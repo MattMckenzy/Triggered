@@ -13,6 +13,9 @@ namespace ModuleMaker.Modules.Discord
 {
     public class DiscordSync
     {
+        /// <summary>
+        /// Sends the received Twitch chat message to the configured Discord text channel, ignoring messages from the TwitchChatService user account.
+        /// </summary>
         public static async Task<bool> SendToDiscord(OnMessageReceivedArgs eventArgs, DiscordService discordSevice, DataService dataService, TwitchService twitchService, TwitchChatService twitchChatService, MessagingService messagingService, IDbContextFactory<TriggeredDbContext> triggeredDbContextFactory)
         {
             if (eventArgs.ChatMessage.Username.Equals(twitchChatService.UserName, StringComparison.InvariantCultureIgnoreCase) && eventArgs.ChatMessage.Message.StartsWith("From Discord user"))
