@@ -108,6 +108,8 @@ namespace Triggered.Components
             "ExternalModulesPath",
             "UtilityTemplate",
             "ExternalUtilitiesPath",
+            "WidgetTemplate",
+            "ExternalWidgetsPath",
             "ExternalResourcesPath",
             "FileWatcherPaths",
             "MessagesLimit",

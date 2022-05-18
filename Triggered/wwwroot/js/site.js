@@ -1,9 +1,14 @@
 ﻿
-function initializeCodeEditor(element, modulesGridHelper) {
+function initializeCodeEditor(element, modulesGridHelper, isHTML = false) {
     ace.require("ace/ext/language_tools");
     var codeEditor = ace.edit(element);
     codeEditor.setTheme("ace/theme/twilight");
-    codeEditor.session.setMode("ace/mode/csharp");
+    if (isHTML) {
+        codeEditor.session.setMode("ace/mode/html");
+    }
+    else {
+        codeEditor.session.setMode("ace/mode/csharp");
+    }
     codeEditor.session.setUseWrapMode(true);
     codeEditor.setAutoScrollEditorIntoView(true);
     codeEditor.setFontSize("18px");

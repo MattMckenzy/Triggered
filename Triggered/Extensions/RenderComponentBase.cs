@@ -1,22 +1,35 @@
 ﻿using Microsoft.AspNetCore.Components;
 
 namespace Triggered.Extensions
-{    
+{
     /// <summary>
     /// Custom blazor component base. Helps queue actions to be run after render.
     /// </summary>
     public class RenderComponentBase : ComponentBase
     {
-        private readonly List<Func<Task>> actionsToRunAfterRender = new();
+        private List<Func<Task>> ActionsToRunAfterRender { get; } = new();
+        private SemaphoreSlim ActionsSemaphore { get; } = new(1);
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            foreach (var actionToRun in actionsToRunAfterRender)
+            try
             {
-                await actionToRun();
-            }
+                await ActionsSemaphore.WaitAsync();
 
-            actionsToRunAfterRender.Clear();
+                foreach (var actionToRun in ActionsToRunAfterRender)
+                {
+                    await ActionsSemaphore.WaitAsync(0);
+
+
+                    await actionToRun();
+                }
+
+                ActionsToRunAfterRender.Clear();
+            }
+            finally
+            {
+                ActionsSemaphore.Release();
+            }     
 
             await base.OnAfterRenderAsync(firstRender);
         }
@@ -25,6 +38,18 @@ namespace Triggered.Extensions
         /// Run an action once after the component is rendered.
         /// </summary>
         /// <param name="action">Action to invoke after render.</param>
-        protected void RunAfterRender(Func<Task> action) => actionsToRunAfterRender.Add(action);
+        protected async void RunAfterRender(Func<Task> action)
+        {
+            try
+            {
+                await ActionsSemaphore.WaitAsync();
+
+                ActionsToRunAfterRender.Add(action);
+            }
+            finally
+            {
+                ActionsSemaphore.Release();
+            }
+        }
     }
 }

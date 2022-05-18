@@ -20,15 +20,25 @@ class MenuActions {
         this.lastMenuitem = false;
         this.currentTarget = false;
 
-        this.buttonNode.addEventListener(
-            'keydown',
-            this.onButtonKeydown.bind(this)
-        );
+        this.onButtonKeydownFunction = this.onButtonKeydown.bind(this);
+        this.onWindowClickFunction = this.onWindowClick.bind(this);
+        this.onMenuButtonClickFunction = this.onMenuButtonClick.bind(this);
 
+        if (this.buttonNode) {
+            this.buttonNode.addEventListener('keydown', this.onButtonKeydownFunction);
+            window.addEventListener('click', this.onWindowClickFunction);
+            this.buttonNode.addEventListener('click', this.onMenuButtonClickFunction);
+        }
+        
         this.updateMenuItemNodes();
+    }
 
-        window.addEventListener('click', this.onWindowClick.bind(this));
-        this.buttonNode.addEventListener('click', this.onMenuButtonClick.bind(this));
+    removeEventListeners() {
+        if (this.buttonNode) {
+            this.buttonNode.removeEventListener('keydown', this.onButtonKeydownFunction);
+            window.removeEventListener('click', this.onWindowClickFunction);
+            this.buttonNode.removeEventListener('click', this.onMenuButtonClickFunction);
+        }
     }
 
     updateMenuItemNodes() {
@@ -46,7 +56,6 @@ class MenuActions {
             var menuitem = nodes[i];
             this.menuitemNodes.push(menuitem);
             menuitem.tabIndex = -1;
-            menuitem.addEventListener('keydown', this.onMenuitemKeydown.bind(this));
 
             if (!this.firstMenuitem) {
                 this.firstMenuitem = menuitem;
@@ -248,17 +257,18 @@ class MenuActions {
     }
 }
 
-var menuActions = new Object();
+var menuActions = [];
 // Initialize menu buttons
-function initializeMenuActions(dotnetHelper) {
-    var menuButtons = document.querySelectorAll('.menu-actions');
-    for (let i = 0; i < menuButtons.length; i++) {
-        menuActions[menuButtons[i]] = new MenuActions(menuButtons[i], dotnetHelper);
+function initializeMenuActions(dotnetHelper, id, element) {
+    if (menuActions[id]) {
+        menuActions[id].removeEventListeners();
     }
+
+    this.menuActions[id] = new MenuActions(element, dotnetHelper);    
 }
 
-function updateMenuActions(element) {
-    menuActions[element].updateMenuItemNodes();
+function updateMenuActions(id) {
+    menuActions[id].updateMenuItemNodes();
 }
 
 jQuery.fn.scrollTo = function (elem, speed) {

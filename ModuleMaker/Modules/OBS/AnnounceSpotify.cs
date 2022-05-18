@@ -3,7 +3,7 @@ using System;
 using System.Threading.Tasks;
 using Triggered.Services;
 
-namespace ModuleMaker.Modules.Twitch
+namespace ModuleMaker.Modules.Triggered
 {
     public class AnnounceSpotify
     {

@@ -28,6 +28,11 @@ namespace Triggered.Models
         public DbSet<Utility> Utilities => Set<Utility>();
 
         /// <summary>
+        /// A database set of <see cref="Widget"/>s.
+        /// </summary>
+        public DbSet<Widget> Widgets => Set<Widget>();
+
+        /// <summary>
         /// A database set of <see cref="EventTest"/>s.
         /// </summary>
         public DbSet<EventTest> EventTests => Set<EventTest>();

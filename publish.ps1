@@ -3,6 +3,7 @@ dotnet publish .\Triggered.Launcher\Triggered.Launcher.csproj /p:PublishProfile=
 
 cp ModuleMaker\Modules Releases\win-x64\Triggered\Modules -Recurse
 cp ModuleMaker\Utilities Releases\win-x64\Triggered\Utilities -Recurse
+cp ModuleMaker\Widgets Releases\win-x64\Triggered\Widgets -Recurse
 
 $version = (Get-Item Releases\win-x64\Triggered\Triggered.exe).VersionInfo.FileVersion
 if (Test-Path "Releases\win-x64\${version}.zip") {

@@ -51,8 +51,70 @@ namespace Triggered.Utilities
     }
 }"
             },
+            {
+                "WidgetTemplate",
+                @"<!doctype html>
+<html>
+    <head>
+        <title>Widget Title</title>
+        <meta name=""description"" content=""widget description"">
+        <meta name=""keywords"" content=""html widget keywords"" >
+    </head>
+    <body style=""background: rgba(0,0,0,0);"">
+        Widget content goes here.
+
+        <!-- // SignalR example for Triggered interaction.
+        <script src=""https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js""></script>
+        <script>
+            // SignalR connection setup.
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl(""/triggeredHub"")
+                .configureLogging(signalR.LogLevel.Information)
+                .withAutomaticReconnect()
+                .build();
+
+            async function start() {
+                try {
+                    await connection.start();
+                    console.assert(connection.state === signalR.HubConnectionState.Connected);
+                    console.log(""SignalR Connected."");
+                } catch (err) {
+                    console.assert(connection.state === signalR.HubConnectionState.Disconnected);
+                    console.log(err);
+                    setTimeout(() => start(), 5000);
+                }
+            };
+
+            connection.onreconnected(connectionId => {
+                console.assert(connection.state === signalR.HubConnectionState.Connected);
+            });
+
+            connection.onclose(error => {
+                console.assert(connection.state === signalR.HubConnectionState.Disconnected);
+            });
+
+            // Start the connection.
+            start();
+
+            // Register method example.
+            connection.on(""ReceiveValue"", (key, value) => {
+                // ... use the new key and value ...
+            });
+
+            // Call method example.
+            try {
+                var value = await connection.invoke(""GetSettingValue"", ""SettingKey"");
+            } catch (err) {
+                console.error(err);
+            }
+        </script>
+        -->
+    </body>
+</html>"
+            },
             { "ExternalModulesPath", "Modules" },
             { "ExternalUtilitiesPath", "Utilities" },
+            { "ExternalWidgetsPath", "Widgets" },
             { "ExternalResourcesPath", "Resources" },
             { "FileWatcherPaths", "" },
             { "MessagesLimit", "1000" },
@@ -104,6 +166,7 @@ namespace Triggered.Utilities
         /// </summary>
         /// <param name="dbSet">From extension, the settings <see cref="DbSet{Setting}"/>.</param>
         /// <param name="name">The name of the setting to create or update.</param>
+        /// <param name="value">The value to set.</param>
         public static void SetSetting(this DbSet<Setting> dbSet, string name, string value)
         {
             Setting? setting = dbSet.FirstOrDefault(setting => setting.Key.Equals(name));

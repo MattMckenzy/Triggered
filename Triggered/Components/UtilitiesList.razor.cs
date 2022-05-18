@@ -42,7 +42,8 @@ namespace Triggered.Components
 
         private object? CodeEditorRef = null;
         private MarkupString CodeAnalysisResults = new();
-        private readonly Dictionary<string, Utility> ExternalUtilities = new();
+        private readonly Dictionary<string, Utility> ExternalUtilities = new(); 
+        private bool IsExternalUtilitiesLoading = false;
 
         private ModalPrompt ModalPromptReference = null!;
 
@@ -52,18 +53,16 @@ namespace Triggered.Components
 
         #region Lifecycle Methods
 
-        protected override Task OnInitializedAsync()
-        {
-            _ = Task.Run(PopulateExternalUtilities);
-            return base.OnInitializedAsync();
-        }
-
         protected async override Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
             {
                 CodeTemplate = DbContextFactory.CreateDbContext().Settings.GetSetting("UtilityTemplate");
                 await SetCurrentUtility(new Utility() { Code = CodeTemplate });
+
+                _ = Task.Run(async () => {
+                    await PopulateExternalUtilities();
+                });
 
                 UtilitiesGridHelper = DotNetObjectReference.Create(this);
                 await JSRuntime.InvokeVoidAsync("initializeCodeEditor", CodeEditorRef, UtilitiesGridHelper);
@@ -84,8 +83,11 @@ namespace Triggered.Components
             await UpdatePageState();
         }
 
-        private Task PopulateExternalUtilities()
+        private async Task PopulateExternalUtilities()
         {
+            IsExternalUtilitiesLoading = true;
+            await InvokeAsync(StateHasChanged);
+
             ExternalUtilities.Clear();
             if (DbContextFactory.CreateDbContext().Settings.GetSetting("ExternalUtilitiesPath").TryCreateDirectory(out DirectoryInfo? directoryInfo))
                 foreach (FileInfo Utility in directoryInfo!.EnumerateFiles("*.cs", SearchOption.AllDirectories).OrderBy(file => file.Name))
@@ -100,7 +102,8 @@ namespace Triggered.Components
                     });
                 }
 
-            return Task.CompletedTask;
+            IsExternalUtilitiesLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
 
         private async Task SetExternalUtility(string externalUtilityKey)

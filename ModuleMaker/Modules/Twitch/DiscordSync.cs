@@ -9,7 +9,7 @@ using Triggered.Models;
 using Triggered.Services;
 using TwitchLib.Client.Events;
 
-namespace ModuleMaker.Modules.Discord
+namespace ModuleMaker.Modules.Twitch
 {
     public class DiscordSync
     {

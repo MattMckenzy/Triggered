@@ -47,12 +47,8 @@ namespace Triggered.Components
         protected async override Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
-            {
-                await JSRuntime.InvokeVoidAsync("initializeMenuActions", DotNetObjectReference.Create(this));
-
                 await UpdatePageState();
-            }
-
+            
             await base.OnAfterRenderAsync(firstRender);
         }
 

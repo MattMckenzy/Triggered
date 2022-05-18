@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using Newtonsoft.Json;
 using System.Dynamic;
-using Triggered.Extensions;
 using Triggered.Models;
 using Triggered.Services;
 
@@ -12,9 +11,6 @@ namespace Triggered.Components
     public partial class DataList
     {
         #region Services Injection
-
-        [Inject]
-        private IJSRuntime JSRuntime { get; set; } = null!;
 
         [Inject]
         private IDbContextFactory<TriggeredDbContext> DbContextFactory { get; set; } = null!;
@@ -48,11 +44,7 @@ namespace Triggered.Components
         protected async override Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
-            {
-                await JSRuntime.InvokeVoidAsync("initializeMenuActions", DotNetObjectReference.Create(this));
-
-                await UpdatePageState();
-            }
+                await UpdatePageState();            
 
             await base.OnAfterRenderAsync(firstRender);
         }
@@ -210,8 +202,7 @@ namespace Triggered.Components
         }
 
         #endregion
-
-
+        
         #region Helper Methods
 
         private async Task UpdatePageState()

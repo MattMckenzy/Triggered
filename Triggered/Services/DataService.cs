@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Dynamic;
 using Triggered.Models;
 
@@ -87,6 +88,58 @@ namespace Triggered.Services
             }
 
             return;
+        }
+
+        /// <summary>
+        /// Retrieves the value of a specific property inside a given data object through its key and path.
+        /// </summary>
+        /// <param name="key">The dot-syntax key used find the <see cref="ExpandoObject"/> that will be used to retrive its property (i.e. "Twitch.Users.MattMckenzy").</param>
+        /// <param name="path">The JSON path string that refers to the property to retrieve (i.e. "Title", see "https://www.newtonsoft.com/json/help/html/QueryJsonSelectTokenJsonPath.htm").</param>
+        /// <returns>The value of the property.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown if the <see cref="ExpandoObject"/> cannot be found at the given key or if the property does not exist at the given path.</exception>
+        public async Task<string> GetValueWithPath(string key, string path)
+        {
+            TriggeredDbContext triggeredDbContext = await _dbContextFactory.CreateDbContextAsync();
+            DataObject? dataObject = triggeredDbContext.DataObjects.FirstOrDefault(dataObject => dataObject.Key.Equals(key));
+            if (dataObject == null)
+            {
+                throw new KeyNotFoundException($"Could not find data object \"{key}\".");
+            }
+
+            JObject jObject = JObject.Parse(dataObject.ExpandoObjectJson ?? string.Empty);
+            string? selectedValue = jObject.SelectToken(path, false)?.Value<string>();
+            if (selectedValue == null)
+            {
+                throw new KeyNotFoundException($"Could not find data value of \"{path}\" in data object \"{key}\".");
+            }
+
+            return selectedValue;
+        }
+
+        /// <summary>
+        /// Sets the value of a specific property inside a given data object through its key and path.
+        /// </summary>
+        /// <param name="key">The dot-syntax key used find the <see cref="ExpandoObject"/> that will be used to set its property (i.e. "Twitch.Users.MattMckenzy").</param>
+        /// <param name="path">The JSON path string that refers to the property to set (i.e. "Title", see "https://www.newtonsoft.com/json/help/html/QueryJsonSelectTokenJsonPath.htm").</param>
+        /// <param name="value">The value to set at the given property.</param>
+        /// <exception cref="KeyNotFoundException">Thrown if the <see cref="ExpandoObject"/> cannot be found at the given key or if the property does not exist at the given path.</exception>
+        public async Task SetValueWithPath(string key, string path, string value)
+        {
+            TriggeredDbContext triggeredDbContext = await _dbContextFactory.CreateDbContextAsync();
+            DataObject? dataObject = triggeredDbContext.DataObjects.FirstOrDefault(dataObject => dataObject.Key.Equals(key));
+            if (dataObject == null)
+            {
+                throw new KeyNotFoundException($"Could not find data object \"{key}\".");
+            }
+
+            JObject jObject = JObject.Parse(dataObject.ExpandoObjectJson ?? string.Empty);
+            JToken? selectedToken = jObject.SelectToken(path, false);
+            if (selectedToken == null)
+            {
+                throw new KeyNotFoundException($"Could not find property at \"{path}\" in data object \"{key}\".");
+            }
+
+            selectedToken.Replace(value);
         }
     }
 }

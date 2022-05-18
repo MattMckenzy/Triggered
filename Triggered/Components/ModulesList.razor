@@ -78,20 +78,18 @@
                 Edit Code
             </button>
             <button type="button" class="btn btn-sm btn-danger bi bi-eraser-fill mb-2 me-3" data-bs-dismiss="modal" @onclick=ResetCode></button>
-            @if (ExternalModules.Values.Where(module => module.Event.Equals(CurrentModule.Event) || string.IsNullOrWhiteSpace(module.Event)).Any())
-            {                 
                 <div class="mb-2 me-3">
                 <FilterSelect
                     Options=@(
                     ExternalModules.Where(externalModule => externalModule.Value.Event.Equals(CurrentModule.Event) || string.IsNullOrWhiteSpace(externalModule.Value.Event))
-                        .ToDictionary(externalModule => externalModule.Key, externalModule => externalModule.Key))
+                        .ToDictionary(externalModule => externalModule.Key, externalModule => externalModule.Value.Name))
                     Categories=null
                     PlaceholderText="External Modules..."
                     NoOptionsText="No modules found..."
+                    IsLoading=IsExternalModulesLoading
                     Validate=false
                     OnChange=@(async (ChangeEventArgs changeEventArgs) => await SetExternalModule((string)changeEventArgs.Value!))></FilterSelect>
                 </div>            
-            }
         </div>
         <div>
             <button class="btn btn-success @(!CurrentModuleIsValid || !CurrentModuleIsDirty ? "disabled" : string.Empty)" @onclick="SaveModule" disabled="@(!CurrentModuleIsValid || !CurrentModuleIsDirty)">

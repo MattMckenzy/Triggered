@@ -8,9 +8,19 @@ namespace Triggered.Services
     /// </summary>
     public class QueueService
     {
+        private MessagingService MessagingService { get; }
+
         private readonly ConcurrentDictionary<string, (CancellationTokenSource, SemaphoreSlim, ConcurrentQueue<(Func<Task<bool>>, string?)>)> Queues = new();
 
-        private MessagingService MessagingService { get; }
+        /// <summary>
+        /// A list of all active queues and their current queued function counts.
+        /// </summary>
+        public Dictionary<string, int> QueueCounts { get { return Queues.Keys.ToDictionary(key => key, key => Queues[key].Item3.Count); } }
+        
+        /// <summary>
+        /// An event that is invoked whenever queue counts are changed. 
+        /// </summary>
+        public event EventHandler? QueueCountsUpdated;
 
         /// <summary>
         /// Default constructor with injected <see cref="Services.MessagingService"/>.
@@ -39,8 +49,9 @@ namespace Triggered.Services
                 await newSemaphore.WaitAsync();
                 queue.Item3.Enqueue((func, exceptionPreamble));
                 newSemaphore.Release();
-            }   
+            }
 
+            QueueCountsUpdated?.Invoke(this, EventArgs.Empty);
             await RunQueue(queueKey);
         }
              
@@ -55,6 +66,7 @@ namespace Triggered.Services
                 queue.Item1.Cancel();
             }
 
+            QueueCountsUpdated?.Invoke(this, EventArgs.Empty);
             return Task.CompletedTask;
         }
 
@@ -74,6 +86,8 @@ namespace Triggered.Services
                             {
                                 if (!queue.Item1.IsCancellationRequested && !await func.Item1())
                                     break;
+
+                                QueueCountsUpdated?.Invoke(this, EventArgs.Empty);
                             }
                             catch (Exception ex)
                             {

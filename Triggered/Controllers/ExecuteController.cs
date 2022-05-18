@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using System.Text.Json;
 using Triggered.Models;
 using Triggered.Services;
@@ -53,20 +52,20 @@ namespace Triggered.Controllers
         }
 
         /// <summary>
-        /// Executes modules by triggering the event based on the event test <paramref name="Id"/> given.
+        /// Executes modules by triggering the event based on the given event test <paramref name="id"/>.
         /// </summary>
-        /// <param name="name">From query, the ID of the event test to trigger.</param>
+        /// <param name="id">From query, the ID of the event test to trigger.</param>
         /// <returns>Ok (200) action result if succesful, bad request (400) if not.</returns>
         [HttpPost("testEvent")]
-        public async Task<IActionResult> ExecuteTestEvent([FromQuery] int? Id)
+        public async Task<IActionResult> ExecuteTestEvent([FromQuery] int? id)
         {
-            if (Id == null)
+            if (id == null)
                 return BadRequest("Please supply a valid event ID in the query string!");
 
-            EventTest? eventTest = (await DbContextFactory.CreateDbContextAsync()).EventTests.FirstOrDefault(eventTest => eventTest.Id == Id);
+            EventTest? eventTest = (await DbContextFactory.CreateDbContextAsync()).EventTests.FirstOrDefault(eventTest => eventTest.Id == id);
 
             if (eventTest == null)
-                return NotFound($"Could not find event test with ID {Id}");
+                return NotFound($"Could not find event test with ID {id}");
 
             try
             {
@@ -84,7 +83,7 @@ namespace Triggered.Controllers
         /// Executes a module found by the query value <paramref name="id"/>, with the given event <paramref name="arguments"/> passed in from the body as JSON.
         /// </summary>
         /// <param name="id">From query, the id of the query to execute.</param>
-        /// <param name="arguments">From body, JSON event arguments that will be passed to executing modules.</param>
+        /// <param name="arguments">From body, JSON event arguments that will be passed to the executed module.</param>
         /// <returns>Ok (200) action result if succesful, bad request (400) if not.</returns>
         [HttpPost("module")]
         public async Task<IActionResult> ExecuteModule([FromQuery] int? id, [FromBody] JsonElement? arguments)

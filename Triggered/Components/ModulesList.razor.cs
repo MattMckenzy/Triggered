@@ -45,6 +45,7 @@ namespace Triggered.Components
         private MarkupString CodeAnalysisResults = new();
         private CompiledModule? CompiledModule = null;
         private readonly Dictionary<string, Module> ExternalModules = new();
+        private bool IsExternalModulesLoading = false;
 
         private ModalPrompt ModalPromptReference = null!;
 
@@ -52,18 +53,16 @@ namespace Triggered.Components
 
         #region Lifecycle Methods
 
-        protected override Task OnInitializedAsync()
-        {
-            _ = Task.Run(PopulateExternalModules);
-            return base.OnInitializedAsync();
-        }
-
         protected async override Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
             {
                 CodeTemplate = DbContextFactory.CreateDbContext().Settings.GetSetting("ModuleTemplate");
                 await SetCurrentModule(new Module() { Code = CodeTemplate });
+
+                _ = Task.Run(async () => {
+                    await PopulateExternalModules();
+                });
 
                 ModulesGridHelper = DotNetObjectReference.Create(this);
                 await JSRuntime.InvokeVoidAsync("initializeCodeEditor", CodeEditorRef, ModulesGridHelper);
@@ -94,26 +93,32 @@ namespace Triggered.Components
             await UpdatePageState();
         }
 
-        private Task PopulateExternalModules()
+        private async Task PopulateExternalModules()
         {
             ExternalModules.Clear();
+            IsExternalModulesLoading = true;
+            await InvokeAsync(StateHasChanged);
+
             if (DbContextFactory.CreateDbContext().Settings.GetSetting("ExternalModulesPath").TryCreateDirectory(out DirectoryInfo? directoryInfo))
                 foreach (FileInfo module in directoryInfo!.EnumerateFiles("*.cs", SearchOption.AllDirectories).OrderBy(file => file.Name))
                 {
                     string moduleCode = File.ReadAllText(module.FullName);
-                    string? eventName = ModuleService.GetCodeEvent(moduleCode);
 
-                    string moduleName = Path.GetRelativePath(directoryInfo!.FullName, module.FullName); 
-                    
-                    ExternalModules.Add(moduleName, new Module
+                    foreach(string eventName in ModuleService.GetCodeEvents(moduleCode))
                     {
-                        Name = moduleName,
-                        Code = moduleCode,
-                        Event = eventName ?? string.Empty
-                    });
+                        string moduleName = Path.GetRelativePath(directoryInfo!.FullName, module.FullName);
+
+                        ExternalModules.Add($"{eventName}.{moduleName}", new Module
+                        {
+                            Name = moduleName,
+                            Code = moduleCode,
+                            Event = eventName
+                        });
+                    }                   
                 }
 
-            return Task.CompletedTask;
+            IsExternalModulesLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
 
         private async Task SetExternalModule(string externalModuleKey)
@@ -129,7 +134,7 @@ namespace Triggered.Components
                 await ModalPromptReference.ShowModalPrompt(new()
                 {
                     Title = "WARNING: Losing code changes!",
-                    Message = $"Are you sure you want to replace the current code with the external module \"{externalModuleKey}\" and lose your changes?",
+                    Message = $"Are you sure you want to replace the current code with the external module \"{ExternalModules[externalModuleKey].Name}\" and lose your changes?",
                     CancelChoice = "Cancel",
                     Choice = "Yes",
                     ChoiceColour = "danger",

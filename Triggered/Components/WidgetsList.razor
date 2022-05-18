@@ -1,0 +1,71 @@
+﻿@using Triggered.Models
+@inject NavigationManager NavManager
+
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+<div class="modal fade" id="codeModal" tabindex="-1" aria-hidden="true" data-backdrop="false">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-transparent">
+            <div class="modal-header bg-white">
+                <span height="20" class="rounded me-2 bi bi-code-slash" alt="HTML" />
+                <strong class="modal-title me-2">HTML Markup Editor</strong>
+                <span class="me-2">@(CurrentWidget.Key)</span>   
+                <button type="button" class="btn-close" data-bs-dismiss="modal" @onclick=@(async () => { IsEditingCode = false; await UpdatePageState(); })></button>
+            </div>
+            <div class="modal-body m-0 p-0">
+                <div @ref=CodeEditorRef id="codeEditor"></div>
+            </div>
+            <div id="codeAnalyser" class="bg-transparent">
+                @if(IsEditingCode)
+                {
+                    <iframe style="width:100%;height:100%;" srcdoc=@WidgetMarkup></iframe>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="widgets">
+    
+    @if (WidgetNames != null)
+    {        
+        <EntitySidebar Title="Widgets"
+            Items=@WidgetNames
+            Categories=null
+            CreateCallback=CreateWidget
+            DeleteCallback=DeleteWidget
+            LoadCallback=LoadWidget
+            CurrentItem=@CurrentWidget.Key></EntitySidebar>
+    }
+
+    <div class="main mb-3">
+        <div class="mb-3">
+            <label for="utilityName" class="form-label text-white">Name</label>
+            <input type="text" class="form-control @(string.IsNullOrWhiteSpace(CurrentWidget.Key) ? "is-invalid" : "is-valid")" id="utilityName" value="@CurrentWidget.Key" 
+                @oninput=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(CurrentWidget.Key), changeEventArgs.Value!)) required>
+        </div>    
+        <div class="d-flex flex-wrap mb-3">
+            <button type="button" class="btn btn-primary mb-2 me-3" data-bs-toggle="modal" data-bs-target="#codeModal" id="codeButton" @onclick=@(() => { IsEditingCode = true; })>
+                Edit Code
+            </button>
+            <button type="button" class="btn btn-sm btn-danger bi bi-eraser-fill mb-2 me-3" data-bs-dismiss="modal" @onclick=ResetCode></button>           
+                <div class="mb-2 me-3">
+                <FilterSelect
+                    Options=@(ExternalWidgets.ToDictionary(externalWidget => externalWidget.Key, externalWidget => externalWidget.Key))
+                    Categories=null
+                    PlaceholderText="External widgets..."
+                    NoOptionsText="No widgets found..."
+                    IsLoading=IsExternalWidgetsLoading
+                    Validate=false
+                    OnChange=@(async (ChangeEventArgs changeEventArgs) => await SetExternalWidget((string)changeEventArgs.Value!))></FilterSelect>
+                </div>            
+        </div>
+        <div class="d-flex flex-wrap">
+            <button class="btn btn-success @(!CurrentWidgetIsValid || !CurrentWidgetIsDirty ? "disabled " : string.Empty)mb-2 me-3" @onclick="SaveWidget" disabled="@(!CurrentWidgetIsValid || !CurrentWidgetIsDirty)">
+                Save Widget
+            </button>
+            <button class="btn btn-sm btn-secondary bi bi-clipboard2 mb-2 me-3"  @onclick=CopyToClipboard>
+            </button>
+        </div>
+    </div>
+</div>

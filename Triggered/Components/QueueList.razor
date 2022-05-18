@@ -1,0 +1,53 @@
+﻿@using System.Collections.Concurrent
+@using Triggered.Models
+
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+<h3 class="text-white mb-3">Active Queues</h3>
+
+<div class="list-group w-100 pe-2 messages-container">
+    @if(QueueService.QueueCounts.Any())
+    {
+        foreach(KeyValuePair<string, int> queue in QueueService.QueueCounts)
+        {
+            <div class="list-group-item list-group-item-action list-group-item-primary flex-column align-items-start">
+                <div class="d-flex align-items-center w-100"> 
+                    <strong class="me-auto">@queue.Key</strong>
+                    <span class="badge bg-primary rounded-pill lh-base">@queue.Value</span>
+                    <button class="btn btn-sm btn-close btn-danger ms-2" @onclick=@(async () => {
+                            await ModalPromptReference!.ShowModalPrompt(new()
+                            {
+                                Title = $"Cancel all queued functions under the key \"{queue.Key}\"?",
+                                Message = $"The currently running function under this key will not be canceled and will continue until finished.",
+                                CancelChoice = "Cancel",
+                                Choice = "Yes",
+                                ChoiceColour = "danger",
+                                ChoiceAction = async () =>
+                                {
+                                    await QueueService.Clear(queue.Key);
+                                }
+                            });
+                        })></button>
+                </div>          
+            </div>
+        }
+    }
+</div>
+
+@code {
+
+    [Inject]
+    private QueueService QueueService { get; set; } = null!;
+        
+    private ModalPrompt ModalPromptReference = null!;
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            QueueService.QueueCountsUpdated += async (object? _, EventArgs __) => await InvokeAsync(StateHasChanged);            
+        }
+
+        return base.OnAfterRenderAsync(firstRender);
+    }
+}

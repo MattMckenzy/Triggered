@@ -44,19 +44,17 @@
             <button type="button" class="btn btn-@(IsUtilityValid ? "primary" : "danger") mb-2 me-3" data-bs-toggle="modal" data-bs-target="#codeModal" id="codeButton">
                 Edit Code
             </button>
-            <button type="button" class="btn btn-sm btn-danger bi bi-eraser-fill mb-2 me-3" data-bs-dismiss="modal" @onclick=ResetCode></button>
-            @if (ExternalUtilities.Any())
-            {                 
+            <button type="button" class="btn btn-sm btn-danger bi bi-eraser-fill mb-2 me-3" data-bs-dismiss="modal" @onclick=ResetCode></button>           
                 <div class="mb-2 me-3">
                 <FilterSelect
                     Options=@(ExternalUtilities.ToDictionary(externalUtility => externalUtility.Key, externalUtility => externalUtility.Key))
                     Categories=null
                     PlaceholderText="External Utilities..."
                     NoOptionsText="No Utilities found..."
+                    IsLoading=IsExternalUtilitiesLoading
                     Validate=false
                     OnChange=@(async (ChangeEventArgs changeEventArgs) => await SetExternalUtility((string)changeEventArgs.Value!))></FilterSelect>
                 </div>            
-            }
         </div>
         <div>
             <button class="btn btn-success @(!CurrentUtilityIsValid || !CurrentUtilityIsDirty ? "disabled" : string.Empty)" @onclick="SaveUtility" disabled="@(!CurrentUtilityIsValid || !CurrentUtilityIsDirty)">

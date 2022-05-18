@@ -11,6 +11,7 @@
         Event,
         Module,
         Utility,
+        Widget,
         Testing
     }
 }

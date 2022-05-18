@@ -251,13 +251,13 @@ namespace Triggered.Services
         }
 
         /// <summary>
-        /// Analyzes the given code and retrieves the unique event name (i.e. "ModuleService.OnCustomEvent") that is related to the first found supported event arguments used as a method parameter.
+        /// Analyzes the given code and retrieves all unique event names (i.e. "ModuleService.OnCustomEvent") for the first found supported event argument used as a method parameter.
         /// </summary>
-        /// <param name="code">The code to analyze and from which to retrieve the event name.</param>
-        /// <returns>The unique event name.</returns>
-        public string? GetCodeEvent(string code)
+        /// <param name="code">The code to analyze and from which to retrieve the event names.</param>
+        /// <returns>The unique event names.</returns>
+        public IEnumerable<string> GetCodeEvents(string code)
         {
-            string? returnEvent = null;
+            List<string> matchedEvents = new();
 
             CompileCode(code, out CSharpCompilation compilation, out SemanticModel semanticModel, out IEnumerable<MethodDeclarationSyntax> methodDeclarationSyntaxes);
 
@@ -272,12 +272,15 @@ namespace Triggered.Services
                         if (typeName != null &&
                             SupportedArgumentTypes.TryGetValue(typeName, out Type? parameterType) &&
                             parameterType != null)
-                            returnEvent = EventArgumentTypes.FirstOrDefault(eventArgumentType => eventArgumentType.Value.Equals(parameterType)).Key;
-                        else
-                            continue;
+                        {
+                            matchedEvents.AddRange(
+                                EventArgumentTypes
+                                    .Where(keyValuePair => keyValuePair.Value.Equals(parameterType))
+                                    .Select(keyValuePair => keyValuePair.Key));
 
-                        if (!string.IsNullOrEmpty(returnEvent))
-                            return returnEvent;
+                            if (matchedEvents.Any())
+                                return matchedEvents;
+                        }
                     }
                 }
             }
@@ -289,7 +292,7 @@ namespace Triggered.Services
                 GC.Collect();
             }
 
-            return returnEvent;
+            return matchedEvents;
         }
 
         /// <summary>

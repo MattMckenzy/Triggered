@@ -1,0 +1,9 @@
+﻿@page "/widget/{key}"
+
+@using Triggered.Pages
+@model WidgetModel
+@{
+    Layout = null;
+ }
+
+@Html.Raw(@ViewData["WidgetMarkup"])

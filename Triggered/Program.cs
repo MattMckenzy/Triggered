@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Triggered.Extensions;
+using Triggered.Hubs;
 using Triggered.Middleware;
 using Triggered.Models;
 using Triggered.Services;
@@ -49,9 +50,12 @@ builder.Services.AddSingleton<DiscordService>();
 builder.Services.AddSingleton<FileWatchingService>();
 builder.Services.AddSingleton<EncryptionService>();
 builder.Services.AddSingleton<ModuleService>();
+builder.Services.AddSingleton<WidgetService>();
 builder.Services.AddSingleton<GitHubService>();
 builder.Services.AddDbContext<TriggeredDbContext>(optionsLifetime: ServiceLifetime.Singleton);
 builder.Services.AddDbContextFactory<TriggeredDbContext>();
+builder.Services.AddRazorPages();
+
 builder.Services.AddHttpClient();
 
 WebApplication app = builder.Build();
@@ -119,8 +123,11 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.MapControllers();
+app.MapRazorPages();
+app.MapHub<TriggeredHub>("/triggeredHub");
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
+
 
 app.Run();
 

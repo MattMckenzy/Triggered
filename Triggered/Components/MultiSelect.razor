@@ -65,7 +65,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-            await JSRuntime.InvokeVoidAsync("initializeMenuActions", DotNetObjectReference.Create(this));        
+            await JSRuntime.InvokeVoidAsync("initializeMenuActions", DotNetObjectReference.Create(this), Id.ToString(), MenuRef);        
 
         await base.OnAfterRenderAsync(firstRender);
     }

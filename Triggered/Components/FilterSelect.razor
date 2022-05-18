@@ -1,43 +1,51 @@
 ﻿@using Triggered.Extensions
 @inherits RenderComponentBase
 
-<div @ref=MenuRef class="dropdown menu-actions">
-    <input id="dropdownToggle@(Id)" class="btn btn-light dropdown-toggle text-start form-control w-100@(Validate ? (IsValid ? " is-valid" : " is-invalid") : string.Empty)" type="text" role="menubutton" 
-        placeholder="@PlaceholderText" aria-haspopup="true" aria-controls="dropdownMenu@(Id)" aria-expanded="false" value=@SelectedText @oninput=Filter>
-    </input>
-    <div id="dropdownMenu@(Id)" class="dropdown-menu" aria-labelledby="dropdownToggle@(Id)" role="menu">
-    @if (FilteredOptions.Any())
+<div @ref="MenuRef" class="dropdown menu-actions">
+
+    @if (IsLoading)
     {
-        if (Categories != null && Categories.Any())
+        <input class="btn btn-light dropdown-toggle text-start form-control w-100" width="100" type="text"
+            placeholder="@LoadingPlaceholder" disabled=@true>    
+    }
+    else
+    {
+        <input id="dropdownToggle@(Id)" class="btn btn-light dropdown-toggle text-start form-control w-100@(Validate ? (IsValid ? " is-valid" : " is-invalid") : string.Empty)" type="text" role="menubutton" 
+            placeholder="@(Options.Any() ? PlaceholderText : NoOptionsText)" disabled=@(!Options.Any()) aria-haspopup="true" aria-controls="dropdownMenu@(Id)" aria-expanded="false" value=@SelectedText @oninput=Filter>
+        <div id="dropdownMenu@(Id)" class="dropdown-menu" aria-labelledby="dropdownToggle@(Id)" role="menu">
+        @if (FilteredOptions.Any())
         {
-            string latestCategory = string.Empty;
-            foreach(KeyValuePair<string, string> category in Categories)
+            if (Categories != null && Categories.Any())
             {
-                KeyValuePair<string, string> option = FilteredOptions.FirstOrDefault(option => option.Key.Equals(category.Key));
-                if (option.Key != null)
+                string latestCategory = string.Empty;
+                foreach(KeyValuePair<string, string> category in Categories)
                 {
-                    if (latestCategory != category.Value)
+                    KeyValuePair<string, string> option = FilteredOptions.FirstOrDefault(option => option.Key.Equals(category.Key));
+                    if (option.Key != null)
                     {
-                        latestCategory = category.Value;
-                        <h6 class="dropdown-header" role="none"><u>@category.Value</u></h6>
-                    }
-                    <button key="@option.Key" class="dropdown-item @(option.Value.Equals(SelectedText) ? "active": string.Empty)" @onclick="@(() => Select(option))" role="menuitem">@option.Value</button>            
-                }     
+                        if (latestCategory != category.Value)
+                        {
+                            latestCategory = category.Value;
+                            <h6 class="dropdown-header" role="none"><u>@category.Value</u></h6>
+                        }
+                        <button key="@option.Key" class="dropdown-item @(option.Value.Equals(SelectedText) ? "active": string.Empty)" @onclick="@(() => Select(option))" role="menuitem">@option.Value</button>            
+                    }     
+                }
+            }
+            else
+            {
+                foreach(KeyValuePair<string, string> keyValuePair in FilteredOptions)
+                {
+                    <button key="@keyValuePair.Key" class="dropdown-item @(keyValuePair.Value.Equals(SelectedText) ? "active": string.Empty)" @onclick="@(() => Select(keyValuePair))" role="menuitem">@keyValuePair.Value</button>            
+                }                
             }
         }
         else
-        {
-            foreach(KeyValuePair<string, string> keyValuePair in FilteredOptions)
-            {
-                <button key="@keyValuePair.Key" class="dropdown-item @(keyValuePair.Value.Equals(SelectedText) ? "active": string.Empty)" @onclick="@(() => Select(keyValuePair))" role="menuitem">@keyValuePair.Value</button>            
-            }                
+        {            
+            <button class="dropdown-item disabled" disabled>@NoOptionsText</button>
         }
+        </div>
     }
-    else
-    {            
-        <button class="dropdown-item disabled" disabled>@NoOptionsText</button>
-    }
-    </div>
 </div>
 
 @code {
@@ -64,7 +72,10 @@
 
     [Parameter]
     public bool Validate { get; set; } = true;
-        
+
+    [Parameter]
+    public bool IsLoading { get; set; } = false;
+
     private ElementReference MenuRef { get; set; }
 
     private Guid Id = Guid.NewGuid();
@@ -72,9 +83,14 @@
     private bool IsValid { get { return Options.Keys.Contains(Selected); } }
     private bool IsDropDownVisisble { get; set; }
 
+    private Timer? LoadingTimer { get; set; }
+    private string LoadingPlaceholder { get; set; } = "Loading...";
+
     private IEnumerable<KeyValuePair<string, string>> FilteredOptions { get; set; } = null!;    
     private string? SelectedText { get; set; }
     private string FilterText { get; set; } = string.Empty;
+
+    private SemaphoreSlim LoadingSemaphoreSlim { get; } = new(1);
 
     [JSInvokable]
     public async void SelectInvokable(string key)
@@ -96,8 +112,37 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-            await JSRuntime.InvokeVoidAsync("initializeMenuActions", DotNetObjectReference.Create(this));        
+        try
+        {
+            await LoadingSemaphoreSlim.WaitAsync();
+
+            if (IsLoading)
+            {
+                LoadingTimer = new Timer(async (object? state) =>
+                {
+                    LoadingPlaceholder = "Loading" + new string('.', ((LoadingPlaceholder.Length - 7) % 3) + 1);
+                    await InvokeAsync(StateHasChanged);
+                }, null, 400, 400);
+            }
+            else if (!IsLoading)
+            {
+                if (LoadingTimer != null)
+                {
+                    await LoadingTimer!.DisposeAsync();
+                    LoadingTimer = null;
+                }
+
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("initializeMenuActions", DotNetObjectReference.Create(this), Id.ToString(), MenuRef);     
+                }
+                catch (JSDisconnectedException) { }
+            }          
+        }
+        finally
+        {
+            LoadingSemaphoreSlim.Release();
+        } 
 
         await base.OnAfterRenderAsync(firstRender);
     }
@@ -121,6 +166,6 @@
 
         FilteredOptions = Options.Where(keyValuePair => keyValuePair.Value.Contains(FilterText, StringComparison.InvariantCultureIgnoreCase));
 
-        RunAfterRender(async () => await JSRuntime.InvokeVoidAsync("updateMenuActions", MenuRef));
+        RunAfterRender(async () => await JSRuntime.InvokeVoidAsync("updateMenuActions", Id.ToString()));
     }
 }

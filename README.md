@@ -454,6 +454,16 @@ public async Task Add(string queueKey, Func<Task<bool>> func, string? exceptionP
 /// <param name="queueKey">The unique key describing which queue should be cleared.</param>
 public Task Clear(string queueKey) {...}
 
+/// <summary>
+/// A list of all active queues and their current queued function counts.
+/// </summary>
+public Dictionary<string, int> QueueCounts { get { ... } }
+                
+/// <summary>
+/// An event that is invoked whenever queue counts are changed. 
+/// </summary>
+public event EventHandler? QueueCountsUpdated;
+
 // Example of queue usage. This function queues an OBS scene change under "SceneChange", so that any subsequent scene changes happen after this one is completed. It returns true so that any subsequently queued functions are not cancelled.
 public static async Task<bool> ShowCamReward(ChannelPointsCustomRewardRedemptionArgs eventArgs, QueueService queueService, ObsService obsService)
 {
@@ -472,7 +482,7 @@ public static async Task<bool> ShowCamReward(ChannelPointsCustomRewardRedemption
 
     return false;
 }
-```
+````
 
 ### ModuleService
 
@@ -525,6 +535,10 @@ Coming soon...
 # Proxy
 
 Coming soon...
+
+# Linux and Containerization.
+
+The service is cross-platform and can be run on Linux. Simply make sure you turn off certificate generation as well as configure the IPAccessList to be able to connect through the containers.
 
 # Donate
 
