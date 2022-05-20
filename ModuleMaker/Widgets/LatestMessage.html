@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Widget Title</title>
+        <meta name="description" content="widget description">
+        <meta name="keywords" content="html widget keywords" >
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            .text {
+               overflow: hidden;
+               text-overflow: ellipsis;
+               display: -webkit-box;
+               line-height: 32px;     /* fallback */
+               max-height: 64px;      /* fallback */
+               -webkit-line-clamp: 2; /* number of lines to show */
+               -webkit-box-orient: vertical;
+            }
+        </style>
+    </head>
+    <body style="background: rgba(0,0,0,0);">
+        
+        <div class="flex rounded-full h-24 items-center" style="background-color: rgba(255,255,255,0.6);">
+            <img class="rounded-full h-24" id="profileImage" />
+            <div class="my-2 line-clamp">
+                <strong class="flex mx-2 my-0 text-xl items-center" id="userName"></strong>
+                <span class="flex flex-wrap mx-2 ml-4 text-xl break-all text" id="lastMessage"></span>
+            </div>
+        </div>
+       
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+        <script>
+            // SignalR connection setup.
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/triggeredHub")
+                .configureLogging(signalR.LogLevel.Information)
+                .withAutomaticReconnect()
+                .build();
+
+            async function start() {
+                try {
+                    await connection.start();
+                    console.assert(connection.state === signalR.HubConnectionState.Connected);
+                    console.log("SignalR Connected.");
+                } catch (err) {
+                    console.assert(connection.state === signalR.HubConnectionState.Disconnected);
+                    console.log(err);
+                    setTimeout(() => start(), 5000);
+                }
+            };
+
+            connection.onreconnected(connectionId => {
+                console.assert(connection.state === signalR.HubConnectionState.Connected);
+            });
+
+            connection.onclose(error => {
+                console.assert(connection.state === signalR.HubConnectionState.Disconnected);
+            });
+
+            // Start the connection.
+            start();
+
+            // Register method example.
+            connection.on("UpdateLastMessage", (profileImageSource, userName, lastMessage) => {
+               document.getElementById("profileImage").src = profileImageSource;
+               document.getElementById("userName").innerHTML = userName;
+               document.getElementById("lastMessage").innerHTML = lastMessage;
+            });
+        </script>
+    </body>
+</html>

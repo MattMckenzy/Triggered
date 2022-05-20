@@ -40,18 +40,7 @@ namespace Triggered.Hubs
             ModuleService = moduleService;
             MessagingService = messagingService;
         }
-
-        /// <summary>
-        /// Broadcasts a message to all clients with the given method, key and value.
-        /// </summary>
-        /// <param name="method">The registered method to trigger on the SignalR clients.</param>
-        /// <param name="key">The key to send.</param>
-        /// <param name="value">The value to send.</param>
-        public async Task BroadcastValue(string method, string key, string value)
-        {
-            await Clients.All.SendAsync(method, key, value);
-        }
-
+         
         /// <summary>
         /// Retrieves the value of a specific property inside a given data object through its key and path.
         /// </summary>

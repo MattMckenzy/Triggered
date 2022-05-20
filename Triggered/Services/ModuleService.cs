@@ -1,4 +1,5 @@
 ﻿using Eltons.ReflectionKit;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,6 +10,7 @@ using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Reflection;
 using Triggered.Extensions;
+using Triggered.Hubs;
 using Triggered.Models;
 
 namespace Triggered.Services
@@ -90,7 +92,7 @@ namespace Triggered.Services
         /// <param name="queueService">Injected <see cref="QueueService"/>.</param>
         /// <param name="memoryCache">Injected <see cref="MemoryCache"/>.</param>
         /// <param name="encryptionService">Injected <see cref="EncryptionService"/>.</param>
-        public ModuleService(IDbContextFactory<TriggeredDbContext> dbContextFactory, MessagingService messagingService, DataService dataService, QueueService queueService, MemoryCache memoryCache, EncryptionService encryptionService)
+        public ModuleService(DataService dataService, QueueService queueService, MemoryCache memoryCache, EncryptionService encryptionService, WidgetService widgetService, MessagingService messagingService, IDbContextFactory<TriggeredDbContext> dbContextFactory, IHubContext<TriggeredHub> hubContext)
         {
             DbContextFactory = dbContextFactory;
             MessagingService = messagingService;
@@ -104,7 +106,9 @@ namespace Triggered.Services
                 (nameof(MemoryCache), typeof(MemoryCache), memoryCache),
                 (nameof(EncryptionService), typeof(EncryptionService), encryptionService),
                 (nameof(ModuleService), typeof(ModuleService), this),
+                (nameof(WidgetService), typeof(WidgetService), widgetService),
                 (nameof(Services.MessagingService), typeof(MessagingService), MessagingService),
+                (nameof(IHubContext<TriggeredHub>), typeof(IHubContext<TriggeredHub>), hubContext),
                 (nameof(IDbContextFactory<TriggeredDbContext>), typeof(IDbContextFactory<TriggeredDbContext>), dbContextFactory)
             });
 

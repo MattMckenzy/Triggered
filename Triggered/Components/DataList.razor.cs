@@ -216,12 +216,32 @@ namespace Triggered.Components
                 (!string.IsNullOrWhiteSpace(CurrentDataObject.Key) && !(CurrentDataObject.ExpandoObjectJson ?? string.Empty).Equals(triggeredDbContext.DataObjects.FirstOrDefault(dataObject => dataObject.Key == CurrentDataObject.Key)?.ExpandoObjectJson ?? string.Empty));
 
             DataObjects = triggeredDbContext.DataObjects.ToList();
+
             DataObjectNames = DataObjects.OrderBy(dataObject => dataObject.Key).ToDictionary(
-                dataObject => dataObject.Key, 
-                dataObject => dataObject.Key.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Last());
+                dataObject => dataObject.Key,
+                dataObject =>
+                {
+                    string[] keyTokens = dataObject.Key.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                    if (keyTokens.Length == 1)
+                        return dataObject.Key;
+                    if (keyTokens.Length == 2)
+                        return keyTokens.Last();
+                    else
+                        return string.Join(".", keyTokens.Skip(2));
+                });
+
             CategoryDataObjects = DataObjects
                 .OrderBy(dataObject => dataObject.Key)
-                .GroupBy(dataObject => string.Join(".", dataObject.Key.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).SkipLast(1)))
+                .GroupBy(dataObject => 
+                {
+                    string[] keyTokens = dataObject.Key.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                    if (keyTokens.Length == 1)
+                        return string.Empty;
+                    if (keyTokens.Length == 2)
+                        return keyTokens.First();
+                    else
+                        return string.Join(".", keyTokens.Take(2));
+                })
                 .OrderBy(group => group.Key)
                 .ToDictionary(
                     group => group.Key,
