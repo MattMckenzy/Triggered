@@ -7,8 +7,8 @@
     <UserSecretsId>f84e9c04-ad72-4cf3-a90d-3e7cf02caefb</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>.</DockerfileContext>
-    <AssemblyVersion>0.9.11</AssemblyVersion>
-    <FileVersion>0.9.11</FileVersion>
+    <AssemblyVersion>0.9.12</AssemblyVersion>
+    <FileVersion>0.9.12</FileVersion>
     <DebugType>embedded</DebugType>
     <ApplicationIcon>Logo.ico</ApplicationIcon>
     <PackageIcon></PackageIcon>
