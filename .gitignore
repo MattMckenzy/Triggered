@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 
 appsettings.Development.json
+/Triggered/wwwroot/assets/music

@@ -7,7 +7,7 @@ using Triggered.Models;
 namespace Triggered.Services
 {
     /// <summary>
-    /// A singleton service that contains methods to assist in generating Widget markup and regestering.
+    /// A singleton service that contains methods to assist in generating Widget markup.
     /// </summary>
     public class WidgetService
     {

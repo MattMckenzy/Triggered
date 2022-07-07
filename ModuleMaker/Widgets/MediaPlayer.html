@@ -1,0 +1,216 @@
+﻿<!--
+    Full-featured media player that randomly plays songs in /assets/music
+    and shows the current track and progress in a small widget.
+    Uses SignalR to control the player.
+-->
+<!doctype html>
+<html>
+<head>
+    <title>Widget Title</title>
+    <meta name="description" content="widget description">
+    <meta name="keywords" content="html widget keywords">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    <style>
+        #mediaBarContainer {
+            height: 34px; /* line-height should be equal to bar height */
+        }
+
+        #mediaTitle {
+            position: absolute;
+            text-align: center;
+            line-height: 34px; /* line-height should be equal to bar height */
+            overflow: hidden;
+            color: #fff;
+            text-shadow: 1px 1px 2px black, 0 0 25px black, 0 0 5px black;
+            right: 0;
+            left: 0;
+            font-size: 2vmin;
+        }
+    </style>
+</head>
+<body style="background: rgba(0,0,0,0);">
+    <div class="progress mb-2" id="mediaBarContainer">
+        <div class="progress-bar bg-info" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 100%;" id="mediaBar"></div>
+        <div class="progress-bar-title" id="mediaTitle"></div>
+    </div>
+    <audio id="player">
+        Your browser does not support the
+        <code>audio</code> element.
+    </audio>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+    <script>
+        const mediaLocation = "https://localhost:7121/assets/music/"
+        let media = [];
+        let currentMediaId;
+
+        function shuffleMedia() {
+            let currentIndex = media.length, randomIndex;
+
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [media[currentIndex], media[randomIndex]] = [
+                    media[randomIndex], media[currentIndex]];
+            }
+
+            let list = media.map((item, index) => { return index + ". " + getFilename(item); }).join("\n");
+            connection.invoke("SetCacheValue", "MediaPlayerList", list);
+        }
+
+        function getNextId() {
+            return Math.min((media.length - 1), currentMediaId + 1);
+        }
+
+        function getPreviousId() {
+            return Math.max(0, currentMediaId - 1);
+        }
+
+        function playById(mediaId) {
+
+            let mediaElement = document.getElementById("player");
+            mediaElement.src = media[mediaId];
+            mediaElement.load();
+            mediaElement.play();
+
+            currentMediaId = mediaId;
+
+            let mediaTitleElement = document.getElementById("mediaTitle");
+            mediaTitleElement.innerHTML = getFilename(media[mediaId]);
+            textFit(mediaTitleElement);
+
+        }
+
+        function getFilename(source) {
+            return decodeURI(source.substring(source.lastIndexOf('/') + 1).replace(".mp3", ""));
+        }
+
+        function playMedia(mediaCount) {
+
+            document.getElementById("player").addEventListener("timeupdate", () => {
+                let mediaBarElement = document.getElementById("mediaBar");
+                let mediaElement = document.getElementById("player");
+                let progress = ((mediaElement.duration - mediaElement.currentTime) / mediaElement.duration) * 100;
+                mediaBarElement.style.width = progress + "%";
+            });
+
+            shuffleMedia();
+            document.getElementById("player").addEventListener("ended", () => {
+                playById(getNextId());
+            });
+
+            playById(0);
+
+        }
+
+        function loadRandomMedia() {
+
+            let xmlhttp = new XMLHttpRequest(),
+                method = 'GET',
+                url = mediaLocation;
+
+            xmlhttp.open(method, url, true);
+
+            function callback(responseText) {
+
+                let dom = (new DOMParser()).parseFromString(responseText, "text/html");
+                let baseEl = dom.createElement('base');
+                baseEl.setAttribute('href', mediaLocation);
+                dom.head.append(baseEl);
+
+                let elements = dom.getElementsByTagName("A");
+                for (x of elements) {
+                    if (x.href.match(/\.mp3$/)) {
+                        media.push(x.href);
+                    }
+                };
+
+                playMedia();
+            };
+
+            xmlhttp.onreadystatechange = function () {
+                if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
+                    callback(xmlhttp.responseText);
+            };
+
+            xmlhttp.send();
+        }
+
+        // SignalR connection setup.
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/triggeredHub")
+            .configureLogging(signalR.LogLevel.Information)
+            .withAutomaticReconnect()
+            .build();
+
+        async function startSignalR() {
+            try {
+                await connection.start();
+                console.assert(connection.state === signalR.HubConnectionState.Connected);
+                console.log("SignalR Connected.");
+            } catch (err) {
+                console.assert(connection.state === signalR.HubConnectionState.Disconnected);
+                console.log(err);
+                setTimeout(() => start(), 5000);
+            }
+        };
+
+        connection.onreconnected(connectionId => {
+            console.assert(connection.state === signalR.HubConnectionState.Connected);
+        });
+
+        connection.onclose(error => {
+            console.assert(connection.state === signalR.HubConnectionState.Disconnected);
+        });
+
+        // Plays the current media.
+        connection.on("MediaPlayerPlay", () => {
+            document.getElementById("player").play();
+        });
+
+        // Pauses the current media.
+        connection.on("MediaPlayerPause", () => {
+            document.getElementById("player").pause();
+        });
+
+        // Moves to the next track in the playlist.
+        connection.on("MediaPlayerNext", () => {
+            playById(getNextId());
+        });
+
+        // Moves to the previous track in the playlist.
+        connection.on("MediaPlayerPrevious", () => {
+            playById(getPreviousId());
+        });
+
+        // Shuffles the media playlist and changes current track to the first in the new list.
+        connection.on("MediaPlayerShuffle", () => {
+            shuffleMedia();
+            playById(0);
+        });
+
+        // Changes the currently playing track to the one referenced in "mediaName".
+        connection.on("MediaPlayerSelect", (mediaName) => {
+            let mediaId = null;
+            const index = parseInt(mediaName);
+
+            if (!isNaN(index)) {
+                mediaId = index;
+            }
+            else {
+                mediaId = media.findIndex(mediaItem => {
+                    return getFilename(mediaItem).search(new RegExp(mediaName, "i")) >= 0;
+                });
+            }
+
+            if (mediaId !== null && mediaId >= 0 && mediaId < media.length)
+                playById(mediaId);
+        });
+
+        startSignalR().then(() => loadRandomMedia());
+    </script>
+    <script>
+        (function (root, factory) { "use strict"; if (typeof define === "function" && define.amd) { define([], factory) } else if (typeof exports === "object") { module.exports = factory() } else { root.textFit = factory() } })(typeof global === "object" ? global : this, function () { "use strict"; var defaultSettings = { alignVert: false, alignHoriz: false, multiLine: false, detectMultiLine: true, minFontSize: 6, maxFontSize: 80, reProcess: true, widthOnly: false, alignVertWithFlexbox: false }; return function textFit(els, options) { if (!options) options = {}; var settings = {}; for (var key in defaultSettings) { if (options.hasOwnProperty(key)) { settings[key] = options[key] } else { settings[key] = defaultSettings[key] } } if (typeof els.toArray === "function") { els = els.toArray() } var elType = Object.prototype.toString.call(els); if (elType !== "[object Array]" && elType !== "[object NodeList]" && elType !== "[object HTMLCollection]") { els = [els] } for (var i = 0; i < els.length; i++) { processItem(els[i], settings) } }; function processItem(el, settings) { if (!isElement(el) || !settings.reProcess && el.getAttribute("textFitted")) { return false } if (!settings.reProcess) { el.setAttribute("textFitted", 1) } var innerSpan, originalHeight, originalHTML, originalWidth; var low, mid, high; originalHTML = el.innerHTML; originalWidth = innerWidth(el); originalHeight = innerHeight(el); if (!originalWidth || !settings.widthOnly && !originalHeight) { if (!settings.widthOnly) throw new Error("Set a static height and width on the target element " + el.outerHTML + " before using textFit!"); else throw new Error("Set a static width on the target element " + el.outerHTML + " before using textFit!") } if (originalHTML.indexOf("textFitted") === -1) { innerSpan = document.createElement("span"); innerSpan.className = "textFitted"; innerSpan.style["display"] = "inline-block"; innerSpan.innerHTML = originalHTML; el.innerHTML = ""; el.appendChild(innerSpan) } else { innerSpan = el.querySelector("span.textFitted"); if (hasClass(innerSpan, "textFitAlignVert")) { innerSpan.className = innerSpan.className.replace("textFitAlignVert", ""); innerSpan.style["height"] = ""; el.className.replace("textFitAlignVertFlex", "") } } if (settings.alignHoriz) { el.style["text-align"] = "center"; innerSpan.style["text-align"] = "center" } var multiLine = settings.multiLine; if (settings.detectMultiLine && !multiLine && innerSpan.scrollHeight >= parseInt(window.getComputedStyle(innerSpan)["font-size"], 10) * 2) { multiLine = true } if (!multiLine) { el.style["white-space"] = "nowrap" } low = settings.minFontSize; high = settings.maxFontSize; var size = low; while (low <= high) { mid = high + low >> 1; innerSpan.style.fontSize = mid + "px"; if (innerSpan.scrollWidth <= originalWidth && (settings.widthOnly || innerSpan.scrollHeight <= originalHeight)) { size = mid; low = mid + 1 } else { high = mid - 1 } } if (innerSpan.style.fontSize != size + "px") innerSpan.style.fontSize = size + "px"; if (settings.alignVert) { addStyleSheet(); var height = innerSpan.scrollHeight; if (window.getComputedStyle(el)["position"] === "static") { el.style["position"] = "relative" } if (!hasClass(innerSpan, "textFitAlignVert")) { innerSpan.className = innerSpan.className + " textFitAlignVert" } innerSpan.style["height"] = height + "px"; if (settings.alignVertWithFlexbox && !hasClass(el, "textFitAlignVertFlex")) { el.className = el.className + " textFitAlignVertFlex" } } } function innerHeight(el) { var style = window.getComputedStyle(el, null); return el.clientHeight - parseInt(style.getPropertyValue("padding-top"), 10) - parseInt(style.getPropertyValue("padding-bottom"), 10) } function innerWidth(el) { var style = window.getComputedStyle(el, null); return el.clientWidth - parseInt(style.getPropertyValue("padding-left"), 10) - parseInt(style.getPropertyValue("padding-right"), 10) } function isElement(o) { return typeof HTMLElement === "object" ? o instanceof HTMLElement : o && typeof o === "object" && o !== null && o.nodeType === 1 && typeof o.nodeName === "string" } function hasClass(element, cls) { return (" " + element.className + " ").indexOf(" " + cls + " ") > -1 } function addStyleSheet() { if (document.getElementById("textFitStyleSheet")) return; var style = [".textFitAlignVert{", "position: absolute;", "top: 0; right: 0; bottom: 0; left: 0;", "margin: auto;", "display: flex;", "justify-content: center;", "flex-direction: column;", "}", ".textFitAlignVertFlex{", "display: flex;", "}", ".textFitAlignVertFlex .textFitAlignVert{", "position: static;", "}"].join(""); var css = document.createElement("style"); css.type = "text/css"; css.id = "textFitStyleSheet"; css.innerHTML = style; document.body.appendChild(css) } });
+    </script>
+</body>
+</html>

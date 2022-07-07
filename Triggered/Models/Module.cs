@@ -10,7 +10,7 @@ namespace Triggered.Models
     public class Module
     {
         /// <summary>
-        /// Default constructor with mandatory and default optional.
+        /// Default constructor with mandatory and default parameters.
         /// </summary>
         /// <param name="name">The descriptive name of the <see cref="Module"/>.</param>
         /// <param name="event">The unique key referencing the event that will trigger this <see cref="Module"/>'s execution.</param>

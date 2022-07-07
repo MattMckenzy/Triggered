@@ -18,7 +18,7 @@ namespace Triggered.Models
         public string? Identifier { get; set; }
 
         /// <summary>
-        /// An <see cref="object"/> that can old any useful data for the invoked event delegate.
+        /// An <see cref="object"/> that can hold any useful data for the invoked event delegate.
         /// </summary>
         public object? Data { get; set; }
     }

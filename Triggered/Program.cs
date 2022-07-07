@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.FileProviders;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -54,7 +55,8 @@ builder.Services.AddSingleton<WidgetService>();
 builder.Services.AddSingleton<GitHubService>();
 builder.Services.AddDbContext<TriggeredDbContext>(optionsLifetime: ServiceLifetime.Singleton);
 builder.Services.AddDbContextFactory<TriggeredDbContext>();
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(); 
+builder.Services.AddDirectoryBrowser();
 
 builder.Services.AddHttpClient();
 
@@ -119,6 +121,21 @@ app.UseTwitchLibEventSubWebhooks();
 app.UseMiddleware<IPAccessListMiddleware>(configuration["IPAccessList"]);
 
 app.UseStaticFiles();
+
+PhysicalFileProvider fileProvider = new(Path.Combine(builder.Environment.WebRootPath, "assets"));
+string requestPath = "/assets";
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = fileProvider,
+    RequestPath = requestPath
+});
+
+app.UseDirectoryBrowser(new DirectoryBrowserOptions
+{
+    FileProvider = fileProvider,
+    RequestPath = requestPath
+});
 
 app.UseRouting();
 

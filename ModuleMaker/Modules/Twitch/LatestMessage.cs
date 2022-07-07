@@ -47,7 +47,7 @@ namespace ModuleMaker.Modules.Twitch
                         message = message.Replace(emote.Name, $"<img height=\"20\" src=\"{emoteUrl}\">");
                     }
 
-                    await triggeredHub.Clients.All.SendAsync("UpdateLastMessage", (string)((dynamic)user).ProfileImageUrl, userName, message);
+                    await triggeredHub.Clients.All.SendAsync("UpdateLastMessage", (string)((dynamic)user).ProfileImageUrl, userName, message, eventArgs.ChatMessage.Message.Length);
                 }
 
                 return true;

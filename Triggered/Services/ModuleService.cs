@@ -138,11 +138,10 @@ namespace Triggered.Services
             SupportedEvents.Add("ModuleService.OnCustomEvent", "Custom");
             EventArgumentTypes.Add("ModuleService.OnCustomEvent", typeof(CustomEventArgs));
             SupportedArgumentTypes.Add("CustomEventArgs", typeof(CustomEventArgs));
-            await RegisterEvents(this);
-
             SupportedArgumentTypes.Add("LongRunningTask", typeof(LongRunningTask));
 
             await AnalyzeAndCompileUtilities();
+            await RegisterEvents(this);
         }
 
         /// <summary>

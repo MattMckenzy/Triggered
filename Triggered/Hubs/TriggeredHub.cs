@@ -104,12 +104,12 @@ namespace Triggered.Hubs
         /// </summary>
         /// <param name="key">The key of the cache item to retrieve.</param>
         /// <returns>The value of the setting, or a null object if not found.</returns>
-        public Task<object?> GetCacheValue(object key)
+        public Task<string> GetCacheValue(string key)
         {
-            if (MemoryCache.TryGetValue(key, out object result))
-                return Task.FromResult((object?)result);
+            if (MemoryCache.TryGetValue(key, out string result))
+                return Task.FromResult(result);
             else
-                return Task.FromResult((object?)null);
+                return Task.FromResult(string.Empty);
         }
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace Triggered.Hubs
         /// </summary>
         /// <param name="key">The key of the cache item to set.</param>
         /// <param name="value">The value to set.</param>
-        public Task SetCacheValue(object key, object value)
+        public Task SetCacheValue(string key, string value)
         {
             MemoryCache.Set(key, value);
             return Task.CompletedTask;

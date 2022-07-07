@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="NewFolder\**" />
+    <EmbeddedResource Remove="NewFolder\**" />
+    <None Remove="NewFolder\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="appsettings.Development.json" />
     <None Remove="appsettings.json" />
   </ItemGroup>
@@ -54,10 +60,6 @@
     <ProjectReference Include="..\TwitchLib\TwitchLib.Client\TwitchLib.Client.Models\TwitchLib.Client.Models.csproj" />
     <ProjectReference Include="..\TwitchLib\TwitchLib.Client\TwitchLib.Client\TwitchLib.Client.csproj" />
     <ProjectReference Include="..\TwitchLib\TwitchLib.PubSub\TwitchLib.PubSub\TwitchLib.PubSub.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="NewFolder\" />
   </ItemGroup>
 
 </Project>

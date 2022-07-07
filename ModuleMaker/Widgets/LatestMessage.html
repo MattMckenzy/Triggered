@@ -1,70 +1,129 @@
 <!doctype html>
+<!--
+    Widget displaying the latest Twitch chat message as a small popup,
+    using SignalR to retrieve the last message event from a module.
+-->
 <html>
-    <head>
-        <title>Widget Title</title>
-        <meta name="description" content="widget description">
-        <meta name="keywords" content="html widget keywords" >
-        <script src="https://cdn.tailwindcss.com"></script>
-        <style>
-            .text {
-               overflow: hidden;
-               text-overflow: ellipsis;
-               display: -webkit-box;
-               line-height: 32px;     /* fallback */
-               max-height: 64px;      /* fallback */
-               -webkit-line-clamp: 2; /* number of lines to show */
-               -webkit-box-orient: vertical;
+<head>
+    <title>Widget Title</title>
+    <meta name="description" content="widget description">
+    <meta name="keywords" content="html widget keywords">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+        }
+
+        #mainDiv {
+            position: relative;
+            bottom: -100px;
+            opacity: 0;
+            -webkit-transition: bottom 150ms, opacity 150ms;
+            transition: bottom 150ms, opacity 150ms;
+            background-color: rgba(255,255,255,0.65);
+        }
+
+            #mainDiv.active {
+                bottom: 0px;
+                opacity: 1;
             }
-        </style>
-    </head>
-    <body style="background: rgba(0,0,0,0);">
-        
-        <div class="flex rounded-full h-24 items-center" style="background-color: rgba(255,255,255,0.6);">
-            <img class="rounded-full h-24" id="profileImage" />
-            <div class="my-2 line-clamp">
-                <strong class="flex mx-2 my-0 text-xl items-center" id="userName"></strong>
-                <span class="flex flex-wrap mx-2 ml-4 text-xl break-all text" id="lastMessage"></span>
-            </div>
+
+            #mainDiv.transition {
+                -webkit-transition: opacity 500ms;
+                transition: opacity 500ms;
+                opacity: 0;
+            }
+    </style>
+</head>
+<body style="background: rgba(0,0,0,0);">
+
+    <div class="flex rounded-full h-24 items-center" id="mainDiv">
+        <img class="rounded-full h-24" id="profileImage" />
+        <div class="my-2 line-clamp">
+            <strong class="flex mx-2 my-0 text-xl items-center" id="userName"></strong>
+            <span class="flex flex-wrap mx-2 ml-4 text-4xl break-all text" id="lastMessage"></span>
         </div>
-       
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
-        <script>
-            // SignalR connection setup.
-            const connection = new signalR.HubConnectionBuilder()
-                .withUrl("/triggeredHub")
-                .configureLogging(signalR.LogLevel.Information)
-                .withAutomaticReconnect()
-                .build();
+        <audio id="pop" src="https://localhost:7121/assets/pop.mp3" preload="auto">
+            Your browser does not support the
+            <code>audio</code> element.
+        </audio>
+    </div>
 
-            async function start() {
-                try {
-                    await connection.start();
-                    console.assert(connection.state === signalR.HubConnectionState.Connected);
-                    console.log("SignalR Connected.");
-                } catch (err) {
-                    console.assert(connection.state === signalR.HubConnectionState.Disconnected);
-                    console.log(err);
-                    setTimeout(() => start(), 5000);
-                }
-            };
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+    <script>
+        // SignalR connection setup.
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/triggeredHub")
+            .configureLogging(signalR.LogLevel.Information)
+            .withAutomaticReconnect()
+            .build();
 
-            connection.onreconnected(connectionId => {
+        async function start() {
+            try {
+                await connection.start();
                 console.assert(connection.state === signalR.HubConnectionState.Connected);
-            });
-
-            connection.onclose(error => {
+                console.log("SignalR Connected.");
+            } catch (err) {
                 console.assert(connection.state === signalR.HubConnectionState.Disconnected);
-            });
+                console.log(err);
+                setTimeout(() => start(), 5000);
+            }
+        };
 
-            // Start the connection.
-            start();
+        connection.onreconnected(connectionId => {
+            console.assert(connection.state === signalR.HubConnectionState.Connected);
+        });
 
-            // Register method example.
-            connection.on("UpdateLastMessage", (profileImageSource, userName, lastMessage) => {
-               document.getElementById("profileImage").src = profileImageSource;
-               document.getElementById("userName").innerHTML = userName;
-               document.getElementById("lastMessage").innerHTML = lastMessage;
-            });
-        </script>
-    </body>
+        connection.onclose(error => {
+            console.assert(connection.state === signalR.HubConnectionState.Disconnected);
+        });
+
+        // Start the connection.
+        start();
+
+        // Updates the last message widget.
+        let hasTime = null;
+        connection.on("UpdateLastMessage", (profileImageSource, userName, lastMessage, size) => {
+            document.getElementById("profileImage").src = profileImageSource;
+            document.getElementById("userName").innerHTML = userName;
+
+            let lastMessageElement = document.getElementById("lastMessage");
+            lastMessageElement.innerHTML = lastMessage;
+            lastMessageElement.classList.remove("text-4xl");
+            lastMessageElement.classList.remove("text-xl");
+            lastMessageElement.classList.remove("text-sm");
+            lastMessageElement.classList.remove("text-xs");
+            lastMessageElement.classList.remove("text-[8px]");
+            if (size <= 19)
+                lastMessageElement.classList.add("text-4xl");
+            else if (size <= 69)
+                lastMessageElement.classList.add("text-xl");
+            else if (size <= 148)
+                lastMessageElement.classList.add("text-sm");
+            else if (size <= 228)
+                lastMessageElement.classList.add("text-xs");
+            else
+                lastMessageElement.classList.add("text-[8px]]");
+
+            let mainDiv = document.getElementById("mainDiv");
+            mainDiv.classList.add('active');
+            let pop = document.getElementById("pop");
+            pop.play();
+
+            if (hasTime != null) {
+                clearTimeout(hasTime);
+            }
+
+            hasTime = setTimeout(function () {
+                mainDiv.classList.add('transition');
+                hasTime = setTimeout(function () {
+                    mainDiv.classList.remove('active');
+                    mainDiv.classList.remove('transition');
+                }, 500);
+            }, 5000);
+        });
+    </script>
+</body>
 </html>

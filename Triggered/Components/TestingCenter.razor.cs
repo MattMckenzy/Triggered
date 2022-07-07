@@ -272,6 +272,10 @@ namespace Triggered.Components
             {
                 InvalidJsonMessages.Add(jsonReaderException.Message);
             }
+            catch (JsonSerializationException jsonSerializationException)
+            {
+                InvalidJsonMessages.Add(jsonSerializationException.Message);
+            }
 
             return false;
         }
